@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 5000;
 app.use(express.json());
 
 // Routes
-app.use('/', userRoutes);
+app.use('/user', userRoutes);
 
 // Error handling middleware
 app.use(errorMiddleware);
