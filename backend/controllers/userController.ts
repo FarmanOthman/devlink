@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { hashPassword, comparePassword } from '../config/auth';
 import prisma from '../config/db';
+import jwt from 'jsonwebtoken';
+import { UserRole } from '../types';
 
 // Helper function for logging errors
 const logError = (error: unknown, message: string) => {
@@ -34,7 +36,7 @@ export const getUsers = async (req: Request, res: Response) => {
 // Create a new user (with password hashing)
 export const createUser = async (req: Request, res: Response) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
     // Validate required fields
     if (!name || !email || !password) {
@@ -65,12 +67,13 @@ export const createUser = async (req: Request, res: Response) => {
     // Hash the password before storing it
     const hashedPassword = await hashPassword(password);
 
-    // Create the new user
+    // Create the new user with role (if provided)
     const newUser = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
+        role: role ? role : undefined, // Set role if provided
         deletedAt: null,  // Soft delete flag
       },
     });
@@ -94,23 +97,28 @@ export const loginUser = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
-
+    // Find user by email
+    const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
+    // Compare password
     const isPasswordValid = await comparePassword(password, user.password);
-
     if (!isPasswordValid) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
-    const userWithoutPassword = { ...user, password: undefined };
+    // Generate JWT token with user ID, email, and role
+    const token = jwt.sign({ 
+      userId: user.id, 
+      email: user.email,
+      role: user.role 
+    }, process.env.JWT_SECRET as string, {
+      expiresIn: '1h', // Token expiration time
+    });
 
-    res.json({ success: true, data: userWithoutPassword, message: 'Login successful' });
+    res.json({ success: true, token });
   } catch (error) {
     logError(error, 'Error during login');
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
@@ -122,7 +130,7 @@ export const loginUser = async (req: Request, res: Response) => {
 export const updateUser = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
     if (password && password.length > 0 && !validatePasswordComplexity(password)) {
       return res.status(400).json({ success: false, message: 'Password must contain uppercase, lowercase, a number, and a symbol' });
@@ -139,6 +147,7 @@ export const updateUser = async (req: Request, res: Response) => {
         name,
         email,
         password: hashedPassword || undefined,
+        role: role || undefined, // Update role if provided
       },
     });
 
