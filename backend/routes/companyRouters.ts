@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { RequestHandler } from 'express';
 import {
   createCompany,
   getCompanies,
@@ -7,15 +7,34 @@ import {
   updateCompany,
   deleteCompany,
 } from '../controllers/companyController';
+import authMiddleware from '../middlewares/authMiddleware';
+import authorizationMiddleware from '../middlewares/authorizationMiddleware';
+import { UserRole } from '../types';
 
 const router = express.Router();
 
-// CRUD Routes for Company
-router.post('/companies', createCompany);
-router.get('/companies', getCompanies);
-router.get('/companies/:id', getCompanyById);
-router.get('/companies/name/:name', getCompanyByName);
-router.put('/companies/:id', updateCompany);
-router.delete('/companies/:id', deleteCompany);
+// Public routes
+router.get('/companies', getCompanies as RequestHandler);
+router.get('/companies/:id', getCompanyById as RequestHandler);
+router.get('/companies/name/:name', getCompanyByName as RequestHandler);
+
+// Protected routes - Recruiter and Admin only
+router.post('/companies', 
+  authMiddleware,
+  authorizationMiddleware([UserRole.RECRUITER, UserRole.ADMIN]),
+  createCompany as RequestHandler
+);
+
+router.put('/companies/:id', 
+  authMiddleware,
+  authorizationMiddleware([UserRole.RECRUITER, UserRole.ADMIN]),
+  updateCompany as RequestHandler
+);
+
+router.delete('/companies/:id', 
+  authMiddleware,
+  authorizationMiddleware([UserRole.ADMIN]),
+  deleteCompany as RequestHandler
+);
 
 export default router;
