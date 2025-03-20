@@ -1,6 +1,7 @@
 import express from 'express';
 import prisma from './config/db';
 import userRoutes from './routes/userRoutes';
+import companyRoutes from './routes/companyRouters';
 import { errorMiddleware } from './middlewares/errorMiddleware';
 
 const app = express();
@@ -11,6 +12,7 @@ app.use(express.json());
 
 // Routes
 app.use('/user', userRoutes);
+app.use('/company', companyRoutes);
 
 // Error handling middleware
 app.use(errorMiddleware);
