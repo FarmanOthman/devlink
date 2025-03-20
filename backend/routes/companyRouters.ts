@@ -13,27 +13,30 @@ import { UserRole } from '../types';
 
 const router = express.Router();
 
-// Public routes
+// Public routes - Anyone can view companies
 router.get('/companies', getCompanies as RequestHandler);
 router.get('/companies/:id', getCompanyById as RequestHandler);
 router.get('/companies/name/:name', getCompanyByName as RequestHandler);
 
 // Protected routes - Recruiter and Admin only
+// POST /companies: Only Recruiters and Admins can create companies
 router.post('/companies', 
-  authMiddleware,
-  authorizationMiddleware([UserRole.RECRUITER, UserRole.ADMIN]),
+  authMiddleware as RequestHandler,
+  authorizationMiddleware([UserRole.RECRUITER, UserRole.ADMIN]) as RequestHandler,
   createCompany as RequestHandler
 );
 
+// PUT /companies/:id: Only Recruiters and Admins can update companies
 router.put('/companies/:id', 
-  authMiddleware,
-  authorizationMiddleware([UserRole.RECRUITER, UserRole.ADMIN]),
+  authMiddleware as RequestHandler,
+  authorizationMiddleware([UserRole.RECRUITER, UserRole.ADMIN]) as RequestHandler,
   updateCompany as RequestHandler
 );
 
+// DELETE /companies/:id: Only Admins can delete companies
 router.delete('/companies/:id', 
-  authMiddleware,
-  authorizationMiddleware([UserRole.ADMIN]),
+  authMiddleware as RequestHandler,
+  authorizationMiddleware([UserRole.ADMIN]) as RequestHandler,
   deleteCompany as RequestHandler
 );
 
