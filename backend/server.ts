@@ -9,6 +9,7 @@ import jobSkillRouters from './routes/jobSkillRouter';
 import jobCategoryRouters from './routes/jobCategoryRouter';
 import documentRoutes from './routes/documentRoutes';
 import notificationRoutes from './routes/notificationRoutes';
+import auditLogController from './routes/auditLogRoutes'
 import { errorMiddleware } from './middlewares/errorMiddleware';
 
 const app = express();
@@ -28,6 +29,7 @@ app.use('/job-skill', jobSkillRouters);
 app.use('/job-category', jobCategoryRouters);
 app.use('/document', documentRoutes);
 app.use('/notification', notificationRoutes);
+app.use('/audit-logs', auditLogController);
 
 // Error handling middleware
 app.use(errorMiddleware);
