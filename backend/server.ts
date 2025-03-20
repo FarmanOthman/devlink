@@ -1,15 +1,15 @@
 import express from 'express';
-import userRoutes from './routes/userRoutes';
-import companyRoutes from './routes/companyRouters';
-import jobRouters from './routes/jobRoutes';
-import applicationRouters from './routes/applicationRoutes';
-import skillRouters from './routes/skillRouters';
-import userSkillRouters from './routes/userSkillRoutes';
-import jobSkillRouters from './routes/jobSkillRouter';
-import jobCategoryRouters from './routes/jobCategoryRouter';
-import documentRoutes from './routes/documentRoutes';
-import notificationRoutes from './routes/notificationRoutes';
-import auditLogController from './routes/auditLogRoutes'
+import userService from './services/userService';
+import companyService from './services/companyService';
+import jobService from './services/jobService';
+import applicationService from './services/applicationService';
+import skillService from './services/skillService';
+import userSkillService from './services/userSkillService';
+import jobSkillService from './services/jobSkillService';
+import jobCategoryService from './services/jobCategoryService';
+import documentService from './services/documentService';
+import notificationService from './services/notificationService';
+import auditLogService from './services/auditLogService';
 import { errorMiddleware } from './middlewares/errorMiddleware';
 
 const app = express();
@@ -19,17 +19,17 @@ const PORT = process.env.PORT || 5000;
 app.use(express.json());
 
 // Routes
-app.use('/user', userRoutes);
-app.use('/company', companyRoutes);
-app.use('/job', jobRouters);
-app.use('/application', applicationRouters);
-app.use('/skill', skillRouters);
-app.use('/user-skill', userSkillRouters);
-app.use('/job-skill', jobSkillRouters);
-app.use('/job-category', jobCategoryRouters);
-app.use('/document', documentRoutes);
-app.use('/notification', notificationRoutes);
-app.use('/audit-logs', auditLogController);
+app.use('/user', userService());
+app.use('/company', companyService());
+app.use('/job', jobService());
+app.use('/application', applicationService());
+app.use('/skill', skillService());
+app.use('/user-skill', userSkillService());
+app.use('/job-skill', jobSkillService());
+app.use('/job-category', jobCategoryService());
+app.use('/document', documentService());
+app.use('/notification', notificationService());
+app.use('/audit-logs', auditLogService());
 
 // Error handling middleware
 app.use(errorMiddleware);
