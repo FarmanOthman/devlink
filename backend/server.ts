@@ -1,5 +1,4 @@
 import express from 'express';
-import prisma from './config/db';
 import userRoutes from './routes/userRoutes';
 import companyRoutes from './routes/companyRouters';
 import jobRouters from './routes/jobRoutes';
@@ -7,6 +6,7 @@ import applicationRouters from './routes/applicationRoutes';
 import skillRouters from './routes/skillRouters';
 import userSkillRouters from './routes/userSkillRoutes';
 import jobSkillRouters from './routes/jobSkillRouter';
+import jobCategoryRouters from './routes/jobCategoryRouter';
 import { errorMiddleware } from './middlewares/errorMiddleware';
 
 const app = express();
@@ -23,6 +23,7 @@ app.use('/application', applicationRouters);
 app.use('/skill', skillRouters);
 app.use('/user-skill', userSkillRouters);
 app.use('/job-skill', jobSkillRouters);
+app.use('/job-category', jobCategoryRouters);
 
 // Error handling middleware
 app.use(errorMiddleware);
