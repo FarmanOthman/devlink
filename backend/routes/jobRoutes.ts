@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { RequestHandler } from 'express';
 import {
   createJob,
   getJobs,
@@ -8,31 +8,37 @@ import {
 } from '../controllers/jobController';
 import authMiddleware from '../middlewares/authMiddleware';
 import authorizationMiddleware from '../middlewares/authorizationMiddleware';
+import ownershipCheck from '../middlewares/ownershipMiddleware';
 import { UserRole } from '../types';
 
 const router = express.Router();
 
-// Public routes
-router.get('/jobs', getJobs);
-router.get('/jobs/:id', getJobById);
+// Public routes - Anyone can view jobs
+router.get('/jobs', getJobs as RequestHandler);
+router.get('/jobs/:id', getJobById as RequestHandler);
 
-// Protected routes (Recruiter only)
+// Protected routes
+// POST /jobs: Only Recruiters and Admins can create jobs
 router.post('/jobs', 
-    authMiddleware,
-    authorizationMiddleware([UserRole.RECRUITER, UserRole.ADMIN]),
-    createJob
+  authMiddleware as RequestHandler,
+  authorizationMiddleware([UserRole.RECRUITER, UserRole.ADMIN]) as RequestHandler,
+  createJob as RequestHandler
 );
 
+// PUT /jobs/:id: Recruiters can update jobs they created. Admins can update any job
 router.put('/jobs/:id', 
-    authMiddleware,
-    authorizationMiddleware([UserRole.RECRUITER, UserRole.ADMIN]),
-    updateJob
+  authMiddleware as RequestHandler,
+  authorizationMiddleware([UserRole.RECRUITER, UserRole.ADMIN]) as RequestHandler,
+  ownershipCheck('job') as RequestHandler,
+  updateJob as RequestHandler
 );
 
+// DELETE /jobs/:id: Recruiters can delete jobs they created. Admins can delete any job
 router.delete('/jobs/:id', 
-    authMiddleware,
-    authorizationMiddleware([UserRole.RECRUITER, UserRole.ADMIN]),
-    deleteJob
+  authMiddleware as RequestHandler,
+  authorizationMiddleware([UserRole.RECRUITER, UserRole.ADMIN]) as RequestHandler,
+  ownershipCheck('job') as RequestHandler,
+  deleteJob as RequestHandler
 );
 
 export default router;
