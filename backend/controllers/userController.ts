@@ -178,3 +178,64 @@ export const deleteUser = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: 'Failed to delete user', error: errorMessage });
   }
 };
+
+// Get a user by ID
+export const getUserById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Exclude password from response
+    const userWithoutPassword = { ...user, password: undefined };
+
+    res.json({ success: true, data: userWithoutPassword });
+  } catch (error) {
+    logError(error, 'Error fetching user');
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    res.status(500).json({ success: false, message: 'Failed to fetch user', error: errorMessage });
+  }
+};
+
+// Update a user's role
+export const updateUserRole = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+
+    // Validate role
+    if (!role || !Object.values(UserRole).includes(role)) {
+      return res.status(400).json({ success: false, message: 'Invalid role provided' });
+    }
+
+    // Check if the user exists
+    const user = await prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Update the user's role
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: { role },
+    });
+
+    // Exclude password from response
+    const userWithoutPassword = { ...updatedUser, password: undefined };
+
+    res.json({ success: true, data: userWithoutPassword, message: 'User role updated successfully' });
+  } catch (error) {
+    logError(error, 'Error updating user role');
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    res.status(500).json({ success: false, message: 'Failed to update user role', error: errorMessage });
+  }
+};
