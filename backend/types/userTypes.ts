@@ -1,7 +1,7 @@
 export enum UserRole {
-    DEVELOPER = 'developer',
-    RECRUITER = 'recruiter',
-    ADMIN = 'admin'
+    DEVELOPER = 'DEVELOPER',
+    RECRUITER = 'RECRUITER',
+    ADMIN = 'ADMIN'
 }
 
 export interface JwtPayload {
