@@ -8,6 +8,7 @@ import userSkillRouters from './routes/userSkillRoutes';
 import jobSkillRouters from './routes/jobSkillRouter';
 import jobCategoryRouters from './routes/jobCategoryRouter';
 import documentRoutes from './routes/documentRoutes';
+import notificationRoutes from './routes/notificationRoutes';
 import { errorMiddleware } from './middlewares/errorMiddleware';
 
 const app = express();
@@ -26,6 +27,7 @@ app.use('/user-skill', userSkillRouters);
 app.use('/job-skill', jobSkillRouters);
 app.use('/job-category', jobCategoryRouters);
 app.use('/document', documentRoutes);
+app.use('/notification', notificationRoutes);
 
 // Error handling middleware
 app.use(errorMiddleware);
