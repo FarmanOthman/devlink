@@ -18,20 +18,20 @@ router.get('/skills/:id', getSkillById as RequestHandler);
 
 // Protected routes - Admin only 
 router.post('/skills', 
-  authMiddleware,
-  authorizationMiddleware([UserRole.ADMIN]),
+  authMiddleware as RequestHandler,
+  authorizationMiddleware([UserRole.ADMIN]) as RequestHandler,
   createSkill as RequestHandler
 );
 
 router.put('/skills/:id', 
-  authMiddleware,
-  authorizationMiddleware([UserRole.ADMIN]),
+  authMiddleware as RequestHandler,
+  authorizationMiddleware([UserRole.ADMIN]) as RequestHandler,
   updateSkill as RequestHandler
 );
 
 router.delete('/skills/:id', 
-  authMiddleware,
-  authorizationMiddleware([UserRole.ADMIN]),
+  authMiddleware as RequestHandler,
+  authorizationMiddleware([UserRole.ADMIN]) as RequestHandler,
   deleteSkill as RequestHandler
 );
 
