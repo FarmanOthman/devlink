@@ -4,6 +4,7 @@ import userRoutes from './routes/userRoutes';
 import companyRoutes from './routes/companyRouters';
 import jobRouters from './routes/jobRoutes';
 import applicationRouters from './routes/applicationRoutes';
+import skillRouters from './routes/skillRouters';
 import { errorMiddleware } from './middlewares/errorMiddleware';
 
 const app = express();
@@ -17,6 +18,7 @@ app.use('/user', userRoutes);
 app.use('/company', companyRoutes);
 app.use('/job', jobRouters);
 app.use('/application', applicationRouters);
+app.use('/skill', skillRouters);
 
 // Error handling middleware
 app.use(errorMiddleware);
