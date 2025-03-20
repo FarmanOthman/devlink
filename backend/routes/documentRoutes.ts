@@ -1,19 +1,20 @@
-import express from 'express';
+import express, { RequestHandler } from 'express';
 import {
   createDocument,
   getDocuments,
   getDocumentById,
   updateDocument,
-  deleteDocument,
+  deleteDocument
 } from '../controllers/documentController';
+import authMiddleware from '../middlewares/authMiddleware';
 
 const router = express.Router();
 
-// CRUD Routes for Document
-router.post('/documents', createDocument);
-router.get('/documents/:userId', getDocuments); // Fetch all documents for a user
-router.get('/documents/:id', getDocumentById);
-router.put('/documents/:id', updateDocument);
-router.delete('/documents/:id', deleteDocument);
+// All document routes should be protected as they relate to user data
+router.post('/documents', authMiddleware, createDocument as RequestHandler);
+router.get('/documents/user/:userId', authMiddleware, getDocuments as RequestHandler);
+router.get('/documents/:id', authMiddleware, getDocumentById as RequestHandler);
+router.put('/documents/:id', authMiddleware, updateDocument as RequestHandler);
+router.delete('/documents/:id', authMiddleware, deleteDocument as RequestHandler);
 
 export default router;
