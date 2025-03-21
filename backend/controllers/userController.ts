@@ -118,11 +118,92 @@ export const loginUser = async (req: Request, res: Response) => {
       expiresIn: '1h', // Token expiration time
     });
 
-    res.json({ success: true, token });
+    // Generate CSRF token
+    const csrfToken = require('crypto').randomBytes(32).toString('hex');
+
+    // Store user info and CSRF token in session
+    req.session.userId = user.id;
+    req.session.role = user.role as UserRole;
+    req.session.userEmail = user.email;
+    req.session.accessToken = token;
+    req.session.createdAt = Date.now();
+
+    // Save session
+    await new Promise<void>((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) reject(err);
+        resolve();
+      });
+    });
+
+    // Common cookie options
+    const ONE_HOUR = 60 * 60 * 1000; // 1 hour in milliseconds (safe integer)
+    const commonCookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // Only send over HTTPS in production
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' as const : 'lax' as const,
+      domain: process.env.COOKIE_DOMAIN || undefined,
+      path: '/',
+      maxAge: ONE_HOUR,
+    };
+
+    // Set JWT cookie (HTTP-only)
+    res.cookie('jwt', token, {
+      ...commonCookieOptions,
+      httpOnly: true, // Always HTTP-only for JWT
+    });
+
+    // Set CSRF token cookie (accessible to JavaScript)
+    res.cookie('XSRF-TOKEN', csrfToken, {
+      ...commonCookieOptions,
+      httpOnly: false, // Must be accessible to JavaScript
+    });
+
+    // Set session cookie (HTTP-only)
+    res.cookie('sessionId', req.sessionID, {
+      ...commonCookieOptions,
+      httpOnly: true, // Always HTTP-only for session
+    });
+
+    // Return user info (excluding password) and CSRF token
+    const userWithoutPassword = { 
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    };
+
+    res.json({ 
+      success: true, 
+      user: userWithoutPassword,
+      message: 'Login successful'
+    });
   } catch (error) {
     logError(error, 'Error during login');
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
     res.status(500).json({ success: false, message: 'Failed to authenticate user', error: errorMessage });
+  }
+};
+
+// Logout user
+export const logoutUser = async (req: Request, res: Response) => {
+  try {
+    // Destroy session
+    await new Promise<void>((resolve, reject) => {
+      req.session.destroy((err) => {
+        if (err) reject(err);
+        resolve();
+      });
+    });
+
+    res.clearCookie('sessionId'); // Clear session cookie
+    res.json({ success: true, message: 'Logged out successfully' });
+  } catch (error) {
+    logError(error, 'Error during logout');
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    res.status(500).json({ success: false, message: 'Failed to logout', error: errorMessage });
   }
 };
 
