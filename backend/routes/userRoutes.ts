@@ -6,7 +6,8 @@ import {
   updateUser,
   deleteUser,
   getUserById,
-  updateUserRole
+  updateUserRole,
+  logoutUser
 } from '../controllers/userController';
 import authMiddleware from '../middlewares/authMiddleware';
 import authorizationMiddleware from '../middlewares/authorizationMiddleware';
@@ -15,46 +16,41 @@ import { UserRole } from '../types';
 
 const router = express.Router();
 
-// Public routes
-router.post('/users', createUser as RequestHandler); // Anyone can register
-router.post('/login', loginUser as RequestHandler); // Anyone can login
+// Public routes (no authentication required)
+router.post('/register', createUser as RequestHandler);
+router.post('/login', loginUser as RequestHandler);
 
-// Protected routes
-// GET /users: Only Admins can view all users
+// Protected routes (require authentication)
+router.use(authMiddleware as RequestHandler); // Apply authentication to all routes below
+
+// Routes that require authentication
+router.post('/logout', logoutUser as RequestHandler);
+
+// Admin only routes
 router.get('/users',
-  authMiddleware as RequestHandler,
   authorizationMiddleware([UserRole.ADMIN]) as RequestHandler,
   getUsers as RequestHandler
 );
 
-// GET /users/:id: Developers and Recruiters can view their own profiles. Admins can view any profile
+router.patch('/users/:id/role',
+  authorizationMiddleware([UserRole.ADMIN]) as RequestHandler,
+  updateUserRole as RequestHandler
+);
+
+// User specific routes (require ownership or admin)
 router.get('/users/:id',
-  authMiddleware as RequestHandler,
-  authorizationMiddleware([UserRole.DEVELOPER, UserRole.RECRUITER, UserRole.ADMIN]) as RequestHandler,
-  ownershipCheck('user') as RequestHandler,
+  ownershipCheck('user'),
   getUserById as RequestHandler
 );
 
-// PUT /users/:id: Developers and Recruiters can update their own profiles. Admins can update any profile
 router.put('/users/:id',
-  authMiddleware as RequestHandler,
-  authorizationMiddleware([UserRole.DEVELOPER, UserRole.RECRUITER, UserRole.ADMIN]) as RequestHandler,
-  ownershipCheck('user') as RequestHandler,
+  ownershipCheck('user'),
   updateUser as RequestHandler
 );
 
-// DELETE /users/:id: Only Admins can delete users
 router.delete('/users/:id',
-  authMiddleware as RequestHandler,
-  authorizationMiddleware([UserRole.ADMIN]) as RequestHandler,
+  ownershipCheck('user'),
   deleteUser as RequestHandler
-);
-
-// PUT /users/:id/role: Only Admins can change user roles
-router.put('/users/:id/role',
-  authMiddleware as RequestHandler,
-  authorizationMiddleware([UserRole.ADMIN]) as RequestHandler,
-  updateUserRole as RequestHandler
 );
 
 export default router;
