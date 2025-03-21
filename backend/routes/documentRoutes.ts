@@ -6,7 +6,7 @@ import {
   updateDocument,
   deleteDocument
 } from '../controllers/documentController';
-import authMiddleware from '../middlewares/authMiddleware';
+import { authMiddleware } from '../middlewares/authMiddleware';
 import authorizationMiddleware from '../middlewares/authorizationMiddleware';
 import ownershipCheck from '../middlewares/ownershipMiddleware';
 import { UserRole } from '../types';

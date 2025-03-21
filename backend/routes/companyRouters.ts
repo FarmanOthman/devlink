@@ -7,7 +7,7 @@ import {
   updateCompany,
   deleteCompany,
 } from '../controllers/companyController';
-import authMiddleware from '../middlewares/authMiddleware';
+import { authMiddleware } from '../middlewares/authMiddleware';
 import authorizationMiddleware from '../middlewares/authorizationMiddleware';
 import { UserRole } from '../types';
 

@@ -1,12 +1,8 @@
-export enum UserRole {
-    DEVELOPER = 'DEVELOPER',
-    RECRUITER = 'RECRUITER',
-    ADMIN = 'ADMIN'
-}
+import { Role } from '@prisma/client';
 
 export interface JwtPayload {
     userId: string;
-    role: UserRole;
+    role: Role;
     email: string;
     [key: string]: any;
 } 

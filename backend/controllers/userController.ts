@@ -3,6 +3,7 @@ import { hashPassword, comparePassword } from '../config/auth';
 import prisma from '../config/db';
 import jwt from 'jsonwebtoken';
 import { UserRole } from '../types';
+import { tokenService } from '../services/tokenService';
 
 // Helper function for logging errors
 const logError = (error: unknown, message: string) => {
@@ -93,117 +94,80 @@ export const createUser = async (req: Request, res: Response) => {
 };
 
 // Authenticate a user (login)
-export const loginUser = async (req: Request, res: Response) => {
+export const loginUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
 
-    // Find user by email
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        password: true,
+        role: true,
+      },
+    });
+
     if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+      res.status(401).json({ message: 'Invalid credentials' });
+      return;
     }
 
-    // Compare password
-    const isPasswordValid = await comparePassword(password, user.password);
-    if (!isPasswordValid) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    const isValidPassword = await comparePassword(password, user.password);
+    if (!isValidPassword) {
+      res.status(401).json({ message: 'Invalid credentials' });
+      return;
     }
 
-    // Generate JWT token with user ID, email, and role
-    const token = jwt.sign({ 
-      userId: user.id, 
-      email: user.email,
-      role: user.role 
-    }, process.env.JWT_SECRET as string, {
-      expiresIn: '1h', // Token expiration time
-    });
+    // Generate token pair
+    const { accessToken, refreshToken } = await tokenService.generateTokenPair(user.id, user.role, user.email);
 
-    // Generate CSRF token
-    const csrfToken = require('crypto').randomBytes(32).toString('hex');
-
-    // Store user info and CSRF token in session
-    req.session.userId = user.id;
-    req.session.role = user.role as UserRole;
-    req.session.userEmail = user.email;
-    req.session.accessToken = token;
-    req.session.createdAt = Date.now();
-
-    // Save session
-    await new Promise<void>((resolve, reject) => {
-      req.session.save((err) => {
-        if (err) reject(err);
-        resolve();
-      });
-    });
-
-    // Common cookie options
-    const ONE_HOUR = 60 * 60 * 1000; // 1 hour in milliseconds (safe integer)
-    const commonCookieOptions = {
+    // Set refresh token in HTTP-only cookie
+    res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // Only send over HTTPS in production
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' as const : 'lax' as const,
-      domain: process.env.COOKIE_DOMAIN || undefined,
-      path: '/',
-      maxAge: ONE_HOUR,
-    };
-
-    // Set JWT cookie (HTTP-only)
-    res.cookie('jwt', token, {
-      ...commonCookieOptions,
-      httpOnly: true, // Always HTTP-only for JWT
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
-    // Set CSRF token cookie (accessible to JavaScript)
-    res.cookie('XSRF-TOKEN', csrfToken, {
-      ...commonCookieOptions,
-      httpOnly: false, // Must be accessible to JavaScript
-    });
+    // Update user's last active timestamp
+    await tokenService.checkActivity(user.id);
 
-    // Set session cookie (HTTP-only)
-    res.cookie('sessionId', req.sessionID, {
-      ...commonCookieOptions,
-      httpOnly: true, // Always HTTP-only for session
-    });
-
-    // Return user info (excluding password) and CSRF token
-    const userWithoutPassword = { 
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt
-    };
-
-    res.json({ 
-      success: true, 
-      user: userWithoutPassword,
-      message: 'Login successful'
+    // Send access token and user info
+    res.json({
+      accessToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role
+      }
     });
   } catch (error) {
-    logError(error, 'Error during login');
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-    res.status(500).json({ success: false, message: 'Failed to authenticate user', error: errorMessage });
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
 
 // Logout user
-export const logoutUser = async (req: Request, res: Response) => {
+export const logout = async (req: Request, res: Response): Promise<void> => {
   try {
-    // Destroy session
-    await new Promise<void>((resolve, reject) => {
-      req.session.destroy((err) => {
-        if (err) reject(err);
-        resolve();
-      });
+    // Clear the refresh token cookie
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict'
     });
 
-    res.clearCookie('sessionId'); // Clear session cookie
-    res.json({ success: true, message: 'Logged out successfully' });
+    // If there's a refresh token, blacklist it
+    const refreshToken = req.cookies.refreshToken;
+    if (refreshToken) {
+      tokenService.blacklistToken(refreshToken);
+    }
+
+    res.json({ message: 'Logged out successfully' });
   } catch (error) {
-    logError(error, 'Error during logout');
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-    res.status(500).json({ success: false, message: 'Failed to logout', error: errorMessage });
+    console.error('Logout error:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
 

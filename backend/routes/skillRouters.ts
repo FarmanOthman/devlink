@@ -6,7 +6,7 @@ import {
   updateSkill,
   deleteSkill,
 } from '../controllers/skillContoller';
-import authMiddleware from '../middlewares/authMiddleware';
+import { authMiddleware } from '../middlewares/authMiddleware';
 import authorizationMiddleware from '../middlewares/authorizationMiddleware';
 import { UserRole } from '../types';
 

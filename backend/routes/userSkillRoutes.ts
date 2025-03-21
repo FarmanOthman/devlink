@@ -7,7 +7,7 @@ import {
   deleteUserSkill,
   getUserSkillsByUserId
 } from '../controllers/userSkillController';
-import authMiddleware from '../middlewares/authMiddleware';
+import { authMiddleware } from '../middlewares/authMiddleware';
 import authorizationMiddleware from '../middlewares/authorizationMiddleware';
 import ownershipCheck from '../middlewares/ownershipMiddleware';
 import { UserRole } from '../types';

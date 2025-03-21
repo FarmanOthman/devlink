@@ -5,7 +5,7 @@ import {
   getAuditLogById,
   deleteAuditLog,
 } from '../controllers/auditLogController';
-import authMiddleware from '../middlewares/authMiddleware';
+import { authMiddleware } from '../middlewares/authMiddleware';
 import authorizationMiddleware from '../middlewares/authorizationMiddleware';
 import { UserRole } from '../types';
 

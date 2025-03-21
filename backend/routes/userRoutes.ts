@@ -7,9 +7,9 @@ import {
   deleteUser,
   getUserById,
   updateUserRole,
-  logoutUser
+  logout
 } from '../controllers/userController';
-import authMiddleware from '../middlewares/authMiddleware';
+import { authMiddleware } from '../middlewares/authMiddleware';
 import authorizationMiddleware from '../middlewares/authorizationMiddleware';
 import ownershipCheck from '../middlewares/ownershipMiddleware';
 import { UserRole } from '../types';
@@ -24,7 +24,7 @@ router.post('/login', loginUser as RequestHandler);
 router.use(authMiddleware as RequestHandler); // Apply authentication to all routes below
 
 // Routes that require authentication
-router.post('/logout', logoutUser as RequestHandler);
+router.post('/logout', logout as RequestHandler);
 
 // Admin only routes
 router.get('/users',

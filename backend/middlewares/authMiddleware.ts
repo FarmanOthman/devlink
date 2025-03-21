@@ -1,57 +1,73 @@
-import { Request, Response, NextFunction, RequestHandler } from 'express';
-import jwt from 'jsonwebtoken';
-import { JwtPayload, UserRole } from '../types';
+import { Request, Response, NextFunction } from 'express';
+import { verifyAccessToken } from '../config/auth';
+import { tokenService } from '../services/tokenService';
+import { JwtPayload } from '../types/userTypes';
 
-// Constants for error messages and status codes
-const ERROR_MESSAGES = {
-    NO_AUTH: 'Access denied. Authentication required.',
-    INVALID_TOKEN: 'Invalid token.',
-    MISSING_SECRET: 'JWT secret is not defined.',
-};
+declare global {
+  namespace Express {
+    interface Request {
+      user?: JwtPayload;
+    }
+  }
+}
 
-const STATUS_CODES = {
-    UNAUTHORIZED: 401,
-    BAD_REQUEST: 400,
-};
-
-const authMiddleware: RequestHandler = (req: Request, res: Response, next: NextFunction): void => {
-    // First check if user is authenticated via session
-    if (req.session.userId && req.session.role) {
-        req.user = {
-            userId: req.session.userId,
-            role: req.session.role as UserRole,
-            email: req.session.userEmail || ''
-        };
-        return next();
+export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    // Get the access token from the Authorization header
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'No token provided' });
     }
 
-    // If no session, check for JWT token
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    const accessToken = authHeader.split(' ')[1];
+    
+    try {
+      // Verify the access token
+      const decoded = verifyAccessToken(accessToken);
+      req.user = decoded;
 
-    if (!token) {
-        res.status(STATUS_CODES.UNAUTHORIZED).json({ message: ERROR_MESSAGES.NO_AUTH });
-        return;
+      // Check for inactivity timeout
+      const hasExceededTimeout = await tokenService.hasExceededInactivityTimeout(decoded.userId);
+      if (hasExceededTimeout) {
+        return res.status(401).json({ message: 'Session expired due to inactivity' });
+      }
+
+      // Update user activity
+      await tokenService.checkActivity(decoded.userId);
+
+      next();
+    } catch (error) {
+      return res.status(401).json({ message: 'Invalid or expired token' });
     }
+  } catch (error) {
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
 
-    if (!process.env.JWT_SECRET) {
-        res.status(STATUS_CODES.BAD_REQUEST).json({ message: ERROR_MESSAGES.MISSING_SECRET });
-        return;
+export const refreshTokenMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+    if (!refreshToken) {
+      return res.status(401).json({ message: 'No refresh token provided' });
     }
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET) as JwtPayload;
-        req.user = decoded;
+      const { accessToken, refreshToken: newRefreshToken } = await tokenService.rotateRefreshToken(refreshToken);
 
-        // Store user info in session for future requests
-        req.session.userId = decoded.userId;
-        req.session.role = decoded.role;
-        req.session.userEmail = decoded.email;
-        req.session.accessToken = token;
+      // Set the new refresh token in a secure cookie
+      res.cookie('refreshToken', newRefreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      });
 
-        next();
+      // Send the new access token
+      res.json({ accessToken });
     } catch (error) {
-        res.status(STATUS_CODES.BAD_REQUEST).json({ message: ERROR_MESSAGES.INVALID_TOKEN });
+      return res.status(401).json({ message: 'Invalid refresh token' });
     }
+  } catch (error) {
+    return res.status(500).json({ message: 'Internal server error' });
+  }
 };
-
-export default authMiddleware;
