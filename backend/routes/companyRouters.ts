@@ -13,18 +13,6 @@ import { UserRole } from '../types';
 
 const router = express.Router();
 
-// Troubleshooting route to check user role
-router.get('/companies/debug/auth-check', 
-  authMiddleware as RequestHandler,
-  (req, res) => {
-    res.json({ 
-      user: req.user,
-      message: 'If you see this, your authentication is working',
-      canEditCompanies: req.user?.role === UserRole.ADMIN || req.user?.role === UserRole.RECRUITER
-    });
-  }
-);
-
 // Public routes - Anyone can view companies
 router.get('/companies', getCompanies as RequestHandler);
 router.get('/companies/:id', getCompanyById as RequestHandler);
