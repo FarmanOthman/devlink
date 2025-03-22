@@ -26,7 +26,35 @@ const validatePasswordComplexity = (password: string) => {
 export const getUsers = async (req: Request, res: Response) => {
   try {
     const users = await prisma.user.findMany();
-    res.json({ success: true, data: users });
+    
+    // Filter sensitive information based on user role
+    let filteredUsers;
+    if (req.user?.role === UserRole.ADMIN) {
+      // Admins can see everything except passwords
+      filteredUsers = users.map(user => ({
+        ...user,
+        password: undefined
+      }));
+    } else {
+      // Regular users can only see non-sensitive information
+      filteredUsers = users.map(user => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar,
+        location: user.location,
+        bio: user.bio,
+        githubUrl: user.githubUrl,
+        linkedinUrl: user.linkedinUrl,
+        portfolioUrl: user.portfolioUrl,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        // Exclude sensitive fields like password, tokenVersion, etc.
+      }));
+    }
+    
+    res.json({ success: true, data: filteredUsers });
   } catch (error) {
     logError(error, 'Failed to fetch users');
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
@@ -451,6 +479,8 @@ export const deleteUser = async (req: Request, res: Response) => {
 export const getUserById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const isOwnProfile = req.user?.userId === id;
+    const isAdmin = req.user?.role === UserRole.ADMIN;
 
     const user = await prisma.user.findUnique({
       where: { id },
@@ -460,10 +490,34 @@ export const getUserById = async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // Exclude password from response
-    const userWithoutPassword = { ...user, password: undefined };
+    // Filter data based on role and ownership
+    let filteredUser;
+    
+    if (isAdmin) {
+      // Admins see everything except password
+      filteredUser = { ...user, password: undefined };
+    } else if (isOwnProfile) {
+      // Users can see their own data except password
+      filteredUser = { ...user, password: undefined };
+    } else {
+      // Others see limited info
+      filteredUser = {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar,
+        location: user.location,
+        bio: user.bio,
+        githubUrl: user.githubUrl,
+        linkedinUrl: user.linkedinUrl,
+        portfolioUrl: user.portfolioUrl,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      };
+    }
 
-    res.json({ success: true, data: userWithoutPassword });
+    res.json({ success: true, data: filteredUser });
   } catch (error) {
     logError(error, 'Error fetching user');
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
