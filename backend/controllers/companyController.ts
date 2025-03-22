@@ -4,7 +4,7 @@ import prisma from '../config/db';
 // Create a new company
 export const createCompany = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, website } = req.body;
+    const { name, website, logo, description, industry, size, founded, location } = req.body;
 
     // Validate required fields
     if (!name) {
@@ -27,6 +27,12 @@ export const createCompany = async (req: Request, res: Response): Promise<void> 
       data: {
         name,
         website,
+        logo,
+        description,
+        industry,
+        size,
+        founded: founded ? Number(founded) : undefined,
+        location,
       },
     });
 
@@ -72,6 +78,19 @@ export const getCompanyById = async (req: Request, res: Response): Promise<void>
 
     const company = await prisma.company.findUnique({
       where: { id },
+      include: {
+        jobs: true,
+        users: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            avatar: true
+            // Exclude sensitive user data
+          }
+        }
+      }
     });
 
     if (!company) {
@@ -98,6 +117,9 @@ export const getCompanyByName = async (req: Request, res: Response): Promise<voi
 
     const company = await prisma.company.findUnique({
       where: { name },
+      include: {
+        jobs: true
+      }
     });
 
     if (!company) {
@@ -121,7 +143,7 @@ export const getCompanyByName = async (req: Request, res: Response): Promise<voi
 export const updateCompany = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { name, website } = req.body;
+    const { name, website, logo, description, industry, size, founded, location } = req.body;
 
     // Validate required fields
     if (!name) {
@@ -139,13 +161,13 @@ export const updateCompany = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Check if the new name already exists
+    // Check if the new name already exists for a different company
     if (name !== existingCompany.name) {
       const companyWithSameName = await prisma.company.findUnique({
         where: { name },
       });
 
-      if (companyWithSameName) {
+      if (companyWithSameName && companyWithSameName.id !== id) {
         res.status(400).json({ message: 'Company name already exists' });
         return;
       }
@@ -157,6 +179,12 @@ export const updateCompany = async (req: Request, res: Response): Promise<void> 
       data: {
         name,
         website,
+        logo,
+        description,
+        industry,
+        size,
+        founded: founded ? Number(founded) : undefined,
+        location,
       },
     });
 
