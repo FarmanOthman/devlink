@@ -20,17 +20,15 @@ const router = express.Router();
 router.post('/register', createUser as RequestHandler);
 router.post('/login', loginUser as RequestHandler);
 
-// Get all users - admin only
+// Get all users - accessible to all authenticated users
 router.get('/users', 
   authMiddleware as RequestHandler, 
-  authorizationMiddleware([UserRole.ADMIN]) as RequestHandler,
   getUsers as RequestHandler
 );
 
-// Get user by ID - requires ownership or admin access
+// Get user by ID - accessible to all authenticated users
 router.get('/users/:id', 
   authMiddleware as RequestHandler, 
-  ownershipCheck(ResourceType.USER) as RequestHandler,
   getUserById as RequestHandler
 );
 
