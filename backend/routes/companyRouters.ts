@@ -18,7 +18,6 @@ router.get('/companies', getCompanies as RequestHandler);
 router.get('/companies/:id', getCompanyById as RequestHandler);
 router.get('/companies/name/:name', getCompanyByName as RequestHandler);
 
-// Protected routes - Recruiter and Admin only
 // POST /companies: Only Recruiters and Admins can create companies
 router.post('/companies', 
   authMiddleware as RequestHandler,
