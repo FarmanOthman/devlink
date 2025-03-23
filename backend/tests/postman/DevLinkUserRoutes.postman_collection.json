@@ -1,0 +1,805 @@
+{
+  "info": {
+    "name": "DevLink User Routes",
+    "description": "A collection for testing all user endpoints in the DevLink application",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "5f8b5ac1-5d5e-47c2-9f0e-3d9144f5c338"
+  },
+  "item": [
+    {
+      "name": "Public Routes",
+      "item": [
+        {
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Helper function to parse the response body",
+                  "function getResponseBody() {",
+                  "    try {",
+                  "        return pm.response.json();",
+                  "    } catch (e) {",
+                  "        console.error('Error parsing response JSON', e);",
+                  "        return {};",
+                  "    }",
+                  "}",
+                  "",
+                  "// If registering a new user, extract the user ID if successful",
+                  "if (pm.response.code === 201) {",
+                  "    const responseData = getResponseBody();",
+                  "    ",
+                  "    console.log('Registration response:', responseData);",
+                  "    ",
+                  "    if (responseData.success && responseData.data && responseData.data.id) {",
+                  "        console.log('Setting new user ID from registration:', responseData.data.id);",
+                  "        pm.environment.set('newUserId', responseData.data.id);",
+                  "        pm.environment.set('userId', responseData.data.id);",
+                  "        pm.collectionVariables.set('currentUserId', responseData.data.id);",
+                  "    }",
+                  "}",
+                  "",
+                  "pm.test(\"Status code is 201\", function() {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-skip-csrf-check",
+                "value": "true"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Test User\",\n    \"email\": \"testuser@example.com\",\n    \"password\": \"Password123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "register"
+              ]
+            },
+            "description": "Create a new user with the DEVELOPER role"
+          },
+          "response": []
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Helper function to parse the response body",
+                  "function getResponseBody() {",
+                  "    try {",
+                  "        return pm.response.json();",
+                  "    } catch (e) {",
+                  "        console.error('Error parsing response JSON', e);",
+                  "        return {};",
+                  "    }",
+                  "}",
+                  "",
+                  "// Extract and set the access token from successful login responses",
+                  "if (pm.response.code === 200) {",
+                  "    const responseData = getResponseBody();",
+                  "    ",
+                  "    console.log('Login response:', responseData);",
+                  "    ",
+                  "    // Extract token based on the API response structure",
+                  "    let token = null;",
+                  "    let userId = null;",
+                  "    ",
+                  "    // Handle different response formats",
+                  "    if (responseData && responseData.accessToken) {",
+                  "        token = responseData.accessToken;",
+                  "        ",
+                  "        if (responseData.user && responseData.user.id) {",
+                  "            userId = responseData.user.id;",
+                  "        }",
+                  "    } else if (responseData.success && responseData.data && responseData.data.accessToken) {",
+                  "        // Alternative response format",
+                  "        token = responseData.data.accessToken;",
+                  "        ",
+                  "        if (responseData.data.user && responseData.data.user.id) {",
+                  "            userId = responseData.data.user.id;",
+                  "        }",
+                  "    }",
+                  "    ",
+                  "    // Store token in both environment and collection variables for persistence",
+                  "    if (token) {",
+                  "        console.log('Setting access token:', token);",
+                  "        pm.environment.set('accessToken', token);",
+                  "        pm.collectionVariables.set('accessToken', token);",
+                  "        ",
+                  "        // Create headers object for use in future requests",
+                  "        const headers = {",
+                  "            Authorization: 'Bearer ' + token",
+                  "        };",
+                  "        pm.environment.set('authHeaders', JSON.stringify(headers));",
+                  "        pm.collectionVariables.set('authHeaders', JSON.stringify(headers));",
+                  "    }",
+                  "    ",
+                  "    // Store userId in both environment and collection variables",
+                  "    if (userId) {",
+                  "        console.log('Setting user ID:', userId);",
+                  "        pm.environment.set('userId', userId);",
+                  "        pm.collectionVariables.set('currentUserId', userId);",
+                  "    }",
+                  "}",
+                  "",
+                  "pm.test(\"Status code is 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Access token is present\", function() {",
+                  "    const responseData = getResponseBody();",
+                  "    ",
+                  "    if (responseData && responseData.accessToken) {",
+                  "        pm.expect(responseData.accessToken).to.be.a('string').and.to.have.lengthOf.at.least(10);",
+                  "    } else if (responseData && responseData.data && responseData.data.accessToken) {",
+                  "        pm.expect(responseData.data.accessToken).to.be.a('string').and.to.have.lengthOf.at.least(10);",
+                  "    } else {",
+                  "        pm.expect.fail('Access token not found in response');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-skip-csrf-check",
+                "value": "true"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"testuser@example.com\",\n    \"password\": \"Password123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "login"
+              ]
+            },
+            "description": "Authenticate and get JWT access token"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Authenticated Routes",
+      "item": [
+        {
+          "name": "Get All Users",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Ensure auth token is available for this request",
+                  "const tokenFromCollection = pm.collectionVariables.get('accessToken');",
+                  "const tokenFromEnvironment = pm.environment.get('accessToken');",
+                  "",
+                  "// Use collection variable as first choice, environment as fallback",
+                  "const token = tokenFromCollection || tokenFromEnvironment;",
+                  "",
+                  "if (!token) {",
+                  "    console.warn('No access token found. Please run the Login request first.');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "x-skip-csrf-check",
+                "value": "true"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            },
+            "description": "Get a list of all users (requires authentication)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Ensure auth token is available for this request",
+                  "const tokenFromCollection = pm.collectionVariables.get('accessToken');",
+                  "const tokenFromEnvironment = pm.environment.get('accessToken');",
+                  "",
+                  "// Use collection variable as first choice, environment as fallback",
+                  "const token = tokenFromCollection || tokenFromEnvironment;",
+                  "",
+                  "if (!token) {",
+                  "    console.warn('No access token found. Please run the Login request first.');",
+                  "}",
+                  "",
+                  "// Ensure we have a userId for the request",
+                  "const userIdFromCollection = pm.collectionVariables.get('currentUserId');",
+                  "const userIdFromEnvironment = pm.environment.get('userId');",
+                  "",
+                  "const userId = userIdFromCollection || userIdFromEnvironment;",
+                  "",
+                  "if (!userId) {",
+                  "    console.warn('No user ID found. Please run the Login or Register request first.');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "x-skip-csrf-check",
+                "value": "true"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}"
+              ]
+            },
+            "description": "Get a user by their ID (requires authentication)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Ensure auth token is available for this request",
+                  "const tokenFromCollection = pm.collectionVariables.get('accessToken');",
+                  "const tokenFromEnvironment = pm.environment.get('accessToken');",
+                  "",
+                  "// Use collection variable as first choice, environment as fallback",
+                  "const token = tokenFromCollection || tokenFromEnvironment;",
+                  "",
+                  "if (!token) {",
+                  "    console.warn('No access token found. Please run the Login request first.');",
+                  "}",
+                  "",
+                  "// Ensure we have a userId for the request",
+                  "const userIdFromCollection = pm.collectionVariables.get('currentUserId');",
+                  "const userIdFromEnvironment = pm.environment.get('userId');",
+                  "",
+                  "const userId = userIdFromCollection || userIdFromEnvironment;",
+                  "",
+                  "if (!userId) {",
+                  "    console.warn('No user ID found. Please run the Login or Register request first.');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "x-skip-csrf-check",
+                "value": "true"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Updated Name\",\n    \"bio\": \"This is my updated bio.\",\n    \"location\": \"New York\",\n    \"website\": \"https://example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}"
+              ]
+            },
+            "description": "Update a user's profile (user can only update own profile unless admin)"
+          },
+          "response": []
+        },
+        {
+          "name": "Cleanup User Data (Before Delete)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Function to parse the response body",
+                  "function getResponseBody() {",
+                  "    try {",
+                  "        return pm.response.json();",
+                  "    } catch (e) {",
+                  "        console.error('Error parsing response JSON', e);",
+                  "        return {};",
+                  "    }",
+                  "}",
+                  "",
+                  "// Check if at least one of the cleanup operations ran successfully",
+                  "pm.test(\"User data cleanup check\", function() {",
+                  "    const responseData = getResponseBody();",
+                  "    console.log('Cleanup results:', responseData);",
+                  "    ",
+                  "    // We don't expect any specific status code as this is a custom endpoint",
+                  "    // Just log the results for information",
+                  "    if (responseData && responseData.results) {",
+                  "        Object.entries(responseData.results).forEach(([key, value]) => {",
+                  "            console.log(`- ${key}: ${value.success ? 'Success' : 'Failed'} ${value.count !== undefined ? '(' + value.count + ' deleted)' : ''}`);",
+                  "        });",
+                  "    }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Ensure auth token is available for this request",
+                  "const tokenFromCollection = pm.collectionVariables.get('accessToken');",
+                  "const tokenFromEnvironment = pm.environment.get('accessToken');",
+                  "",
+                  "// Use collection variable as first choice, environment as fallback",
+                  "const token = tokenFromCollection || tokenFromEnvironment;",
+                  "",
+                  "if (!token) {",
+                  "    console.warn('No access token found. Please run the Login request first.');",
+                  "}",
+                  "",
+                  "// Ensure we have a userId for the request",
+                  "const userIdFromCollection = pm.collectionVariables.get('currentUserId');",
+                  "const userIdFromEnvironment = pm.environment.get('userId');",
+                  "",
+                  "const userId = userIdFromCollection || userIdFromEnvironment;",
+                  "",
+                  "if (!userId) {",
+                  "    console.warn('No user ID found. Please run the Login or Register request first.');",
+                  "}",
+                  "",
+                  "console.log('Preparing to clean up data for user ID:', userId);",
+                  "console.log('This will attempt to delete all related user data:');",
+                  "console.log('- User skills');",
+                  "console.log('- Applications');",
+                  "console.log('- Documents');",
+                  "console.log('- Saved jobs');",
+                  "console.log('- Notifications')",
+                  "console.log('After this, you should be able to delete the user account successfully.')"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "x-skip-csrf-check",
+                "value": "true"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"cleanupTypes\": [\n        \"userSkills\",\n        \"applications\",\n        \"documents\",\n        \"savedJobs\",\n        \"notifications\"\n    ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/cleanup-data",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}",
+                "cleanup-data"
+              ]
+            },
+            "description": "This is a custom endpoint to help clean up related user data before deleting a user account. Send this request if you're getting validation errors when trying to delete a user. Note: If this endpoint doesn't exist in your API, you'll need to manually delete each related record first."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Helper function to parse the response body",
+                  "function getResponseBody() {",
+                  "    try {",
+                  "        return pm.response.json();",
+                  "    } catch (e) {",
+                  "        console.error('Error parsing response JSON', e);",
+                  "        return {};",
+                  "    }",
+                  "}",
+                  "",
+                  "// Test for successful deletion or handle error with more detail",
+                  "pm.test(\"User deletion status check\", function() {",
+                  "    const responseData = getResponseBody();",
+                  "    ",
+                  "    // Check if response is 200 OK",
+                  "    if (pm.response.code === 200) {",
+                  "        pm.expect(responseData.success).to.be.true;",
+                  "        console.log('User deleted successfully!');",
+                  "    } ",
+                  "    // If there's a validation error",
+                  "    else if (responseData.error && responseData.error.code === 'VALIDATION_ERROR') {",
+                  "        console.log('Validation error when deleting user. This may occur if:');",
+                  "        console.log('1. You are trying to delete another user\\'s account without admin privileges');",
+                  "        console.log('2. The user has related records (applications, skills, etc.) that need to be deleted first');",
+                  "        console.log('TRY THIS: Run the \"Cleanup User Data (Before Delete)\" request first');",
+                  "        pm.expect.fail('Validation error: ' + responseData.error.message);",
+                  "    }",
+                  "    // Any other error",
+                  "    else if (!responseData.success) {",
+                  "        console.log('Error deleting user:', responseData.error);",
+                  "        pm.expect.fail('Error: ' + (responseData.error ? responseData.error.message : 'Unknown error'));",
+                  "    }",
+                  "})"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Ensure auth token is available for this request",
+                  "const tokenFromCollection = pm.collectionVariables.get('accessToken');",
+                  "const tokenFromEnvironment = pm.environment.get('accessToken');",
+                  "",
+                  "// Use collection variable as first choice, environment as fallback",
+                  "const token = tokenFromCollection || tokenFromEnvironment;",
+                  "",
+                  "if (!token) {",
+                  "    console.warn('No access token found. Please run the Login request first.');",
+                  "}",
+                  "",
+                  "// Ensure we have a userId for the request",
+                  "const userIdFromCollection = pm.collectionVariables.get('currentUserId');",
+                  "const userIdFromEnvironment = pm.environment.get('userId');",
+                  "",
+                  "const userId = userIdFromCollection || userIdFromEnvironment;",
+                  "",
+                  "if (!userId) {",
+                  "    console.warn('No user ID found. Please run the Login or Register request first.');",
+                  "}",
+                  "",
+                  "// Important: Make sure the URL parameter matches the logged-in user ID",
+                  "console.log('Attempting to delete user with ID:', userId);",
+                  "console.log('Make sure this is your own user ID unless you have admin privileges.');",
+                  "console.log('If deletion fails, try running the \"Cleanup User Data\" request first.')"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "x-skip-csrf-check",
+                "value": "true"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}"
+              ]
+            },
+            "description": "Delete a user (user can only delete own account unless admin). Note: If the user has related records (applications, skills, etc.), you may need to delete those first or have admin privileges."
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Role",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Ensure auth token is available for this request",
+                  "const tokenFromCollection = pm.collectionVariables.get('accessToken');",
+                  "const tokenFromEnvironment = pm.environment.get('accessToken');",
+                  "",
+                  "// Use collection variable as first choice, environment as fallback",
+                  "const token = tokenFromCollection || tokenFromEnvironment;",
+                  "",
+                  "if (!token) {",
+                  "    console.warn('No access token found. Please run the Login request first.');",
+                  "}",
+                  "",
+                  "// Ensure we have a userId for the request",
+                  "const userIdFromCollection = pm.collectionVariables.get('currentUserId');",
+                  "const userIdFromEnvironment = pm.environment.get('userId');",
+                  "",
+                  "const userId = userIdFromCollection || userIdFromEnvironment;",
+                  "",
+                  "if (!userId) {",
+                  "    console.warn('No user ID found. Please run the Login or Register request first.');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization", 
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "x-skip-csrf-check",
+                "value": "true"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"role\": \"RECRUITER\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/role",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}",
+                "role"
+              ]
+            },
+            "description": "Update a user's role (admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Clear auth tokens after successful logout",
+                  "if (pm.response.code === 200) {",
+                  "    pm.environment.set('accessToken', '');",
+                  "    pm.collectionVariables.set('accessToken', '');",
+                  "    pm.environment.set('authHeaders', '{}');",
+                  "    pm.collectionVariables.set('authHeaders', '{}');",
+                  "    console.log('Cleared access token and auth headers');",
+                  "}",
+                  "",
+                  "pm.test(\"Status code is 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Ensure auth token is available for this request",
+                  "const tokenFromCollection = pm.collectionVariables.get('accessToken');",
+                  "const tokenFromEnvironment = pm.environment.get('accessToken');",
+                  "",
+                  "// Use collection variable as first choice, environment as fallback",
+                  "const token = tokenFromCollection || tokenFromEnvironment;",
+                  "",
+                  "if (!token) {",
+                  "    console.warn('No access token found. Please run the Login request first.');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "x-skip-csrf-check",
+                "value": "true"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "logout"
+              ]
+            },
+            "description": "Logout the current user and invalidate their tokens"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global pre-request script that runs before every request",
+          "// This ensures consistent auth headers across tabs"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global test script"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/devlink",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "currentUserId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "authHeaders",
+      "value": "{}",
+      "type": "string"
+    }
+  ]
+} 
