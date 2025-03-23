@@ -5,7 +5,7 @@ import {
   getJobSkillById,
   updateJobSkill,
   deleteJobSkill,
-} from '../controllers/jobSkillController';
+} from '../controllers/modules/jobSkillController';
 import { authMiddleware } from '../middlewares/authMiddleware';
 import authorizationMiddleware from '../middlewares/authorizationMiddleware';
 import ownershipCheck from '../middlewares/ownershipMiddleware';

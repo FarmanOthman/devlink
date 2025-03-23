@@ -4,11 +4,11 @@ import {
   getJobs,
   getJobById,
   updateJob,
-  deleteJob,
-} from '../controllers/jobController';
+  deleteJob
+} from '../controllers/modules/jobController';
 import { authMiddleware } from '../middlewares/authMiddleware';
 import authorizationMiddleware from '../middlewares/authorizationMiddleware';
-import ownershipCheck from '../middlewares/ownershipMiddleware';
+import ownershipCheck, { ResourceType } from '../middlewares/ownershipMiddleware';
 import { UserRole } from '../types';
 
 const router = express.Router();
@@ -28,16 +28,14 @@ router.post('/jobs',
 // PUT /jobs/:id: Recruiters can update jobs they created. Admins can update any job
 router.put('/jobs/:id', 
   authMiddleware as RequestHandler,
-  authorizationMiddleware([UserRole.RECRUITER, UserRole.ADMIN]) as RequestHandler,
-  ownershipCheck('job') as RequestHandler,
+  ownershipCheck(ResourceType.JOB) as RequestHandler,
   updateJob as RequestHandler
 );
 
 // DELETE /jobs/:id: Recruiters can delete jobs they created. Admins can delete any job
 router.delete('/jobs/:id', 
   authMiddleware as RequestHandler,
-  authorizationMiddleware([UserRole.RECRUITER, UserRole.ADMIN]) as RequestHandler,
-  ownershipCheck('job') as RequestHandler,
+  ownershipCheck(ResourceType.JOB) as RequestHandler,
   deleteJob as RequestHandler
 );
 

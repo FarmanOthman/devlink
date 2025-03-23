@@ -5,7 +5,7 @@ import {
   getSkillById,
   updateSkill,
   deleteSkill,
-} from '../controllers/skillContoller';
+} from '../controllers/modules/skillController';
 import { authMiddleware } from '../middlewares/authMiddleware';
 import authorizationMiddleware from '../middlewares/authorizationMiddleware';
 import { UserRole } from '../types';

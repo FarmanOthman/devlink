@@ -5,7 +5,8 @@ import {
   getJobCategoryById,
   updateJobCategory,
   deleteJobCategory,
-} from '../controllers/jobCategoryController';
+  getJobsByCategoryId
+} from '../controllers/modules/jobCategoryController';
 import { authMiddleware } from '../middlewares/authMiddleware';
 import authorizationMiddleware from '../middlewares/authorizationMiddleware';
 import { UserRole } from '../types';
@@ -15,12 +16,13 @@ const router = express.Router();
 // Public routes - Anyone can view job categories
 router.get('/job-categories', getJobCategories as RequestHandler);
 router.get('/job-categories/:id', getJobCategoryById as RequestHandler);
+router.get('/job-categories/:id/jobs', getJobsByCategoryId as RequestHandler);
 
 // Protected routes
-// POST /job-categories: Only Admins can create job categories
+// POST /job-categories: Only Admins and Recruiters can create job categories
 router.post('/job-categories', 
   authMiddleware as RequestHandler,
-  authorizationMiddleware([UserRole.ADMIN]) as RequestHandler,
+  authorizationMiddleware([UserRole.ADMIN, UserRole.RECRUITER]) as RequestHandler,
   createJobCategory as RequestHandler
 );
 

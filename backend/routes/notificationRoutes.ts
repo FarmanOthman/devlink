@@ -5,7 +5,7 @@ import {
   getNotificationById,
   markNotificationAsRead,
   deleteNotification
-} from '../controllers/notificationController';
+} from '../controllers/modules/notificationController';
 import { authMiddleware } from '../middlewares/authMiddleware';
 import authorizationMiddleware from '../middlewares/authorizationMiddleware';
 import ownershipCheck from '../middlewares/ownershipMiddleware';

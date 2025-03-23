@@ -105,6 +105,22 @@ class TokenService {
     const inactiveTime = Date.now() - user.lastActive.getTime();
     return inactiveTime > TOKEN_EXPIRATION.INACTIVITY_TIMEOUT;
   }
+
+  // Invalidate all tokens for a specific user by incrementing their token version
+  async invalidateAllUserTokens(userId: string): Promise<void> {
+    try {
+      // Incrementing the tokenVersion invalidates all existing refresh tokens
+      await prisma.user.update({
+        where: { id: userId },
+        data: { tokenVersion: { increment: 1 } }
+      });
+      
+      console.log(`All tokens invalidated for user ${userId}`);
+    } catch (error) {
+      console.error('Error invalidating user tokens:', error);
+      throw new Error('Failed to invalidate user tokens');
+    }
+  }
 }
 
 export const tokenService = TokenService.getInstance(); 

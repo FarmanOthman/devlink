@@ -6,7 +6,7 @@ import {
   updateUserSkill,
   deleteUserSkill,
   getUserSkillsByUserId
-} from '../controllers/userSkillController';
+} from '../controllers/modules/userSkillController';
 import { authMiddleware } from '../middlewares/authMiddleware';
 import authorizationMiddleware from '../middlewares/authorizationMiddleware';
 import ownershipCheck from '../middlewares/ownershipMiddleware';

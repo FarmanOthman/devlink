@@ -12,7 +12,7 @@ import {
   logout,
   loginUser,
   createUser
-} from '../controllers/userController';
+} from '../controllers/modules/userController';
 
 const router = express.Router();
 

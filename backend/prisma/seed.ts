@@ -82,6 +82,13 @@ async function main() {
     },
   });
 
+  // Create a Job Category first
+  const jobCategory = await prisma.jobCategory.create({
+    data: {
+      name: 'Software Development'
+    },
+  });
+
   // Create Jobs
   const job1 = await prisma.job.create({
     data: {
@@ -91,14 +98,12 @@ async function main() {
       type: 'REMOTE',
       companyId: company1.id,
       userId: user2.id,
+      categoryId: jobCategory.id,
       skills: {
         create: [
           { skillId: skill1.id, level: 'EXPERT' },
           { skillId: skill3.id, level: 'INTERMEDIATE' },
         ],
-      },
-      categories: {
-        create: [{ name: 'Software Development' }],
       },
     },
   });
@@ -117,9 +122,8 @@ async function main() {
   await prisma.document.create({
     data: {
       userId: user1.id,
-      fileName: 'resume.pdf',
-      fileType: 'application/pdf',
-      filePath: '/uploads/resume.pdf',
+      fileUrl: 'https://example.com/resume/johndoe.pdf',
+      documentType: 'RESUME',
     },
   });
 
