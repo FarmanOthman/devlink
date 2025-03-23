@@ -402,31 +402,8 @@ export const deleteUser = async (req: Request, res: Response) => {
           } catch (e) { console.log('No savedJob records or table not found'); }
           
           try {
-            await prisma.education.deleteMany({ where: { userId: id } });
-          } catch (e) { console.log('No education records or table not found'); }
-          
-          try {
-            await prisma.experience.deleteMany({ where: { userId: id } });
-          } catch (e) { console.log('No experience records or table not found'); }
-          
-          try {
-            // Try with receiverId
-            await prisma.message.deleteMany({
-              where: { OR: [{ senderId: id }] }
-            });
-            
-            // Try to delete messages where user is the recipient
-            // Use a separate try/catch to handle different field names
-            try {
-              await prisma.message.deleteMany({
-                where: { receiverId: id }
-              });
-            } catch {
-              console.log('receiverId field not found on Message model');
-            }
-          } catch (e) {
-            console.log('Error deleting messages or table not found');
-          }
+            await prisma.notification.deleteMany({ where: { userId: id } });
+          } catch (e) { console.log('No notification records or table not found'); }
           
           // Now try to delete the user again
           await prisma.user.delete({ where: { id } });
