@@ -5,7 +5,6 @@ const prisma = new PrismaClient();
 
 async function main() {
   // Clear existing data
-  await prisma.auditLog.deleteMany();
   await prisma.notification.deleteMany();
   await prisma.document.deleteMany();
   await prisma.jobCategory.deleteMany();
@@ -136,15 +135,6 @@ async function main() {
     },
   });
 
-  // Create Audit Logs
-  await prisma.auditLog.create({
-    data: {
-      userId: user1.id,
-      action: 'APPLICATION_SUBMITTED',
-      oldValue: null,
-      newValue: JSON.stringify({ jobId: job1.id, status: 'PENDING' }),
-    },
-  });
 
   console.log('Database seeded successfully!');
   console.log('\nTest Accounts:');
