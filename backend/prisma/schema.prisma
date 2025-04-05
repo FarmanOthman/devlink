@@ -89,6 +89,8 @@ model Job {
   @@index([type])
   @@index([createdAt])
   @@index([categoryId])
+  @@index([salaryMin, salaryMax])
+  @@index([location])
 }
 
 model Application {
@@ -98,6 +100,7 @@ model Application {
   resumeUrl        String
   coverLetter      String?           @db.Text
   status           ApplicationStatus @default(PENDING)
+  skillMatchScore  Float?            @default(0)
   // Interview fields (merged from InterviewRequest)
   scheduledFor     DateTime?
   interviewMessage String?           @db.Text
@@ -115,6 +118,7 @@ model Application {
   @@index([status])
   @@index([recruiterId])
   @@index([createdAt])
+  @@index([skillMatchScore])
 }
 
 model SavedJob {

@@ -1,4 +1,5 @@
 import express, { RequestHandler } from 'express';
+import { AuthenticatedRequest } from '../types/express.d';
 import { authMiddleware } from '../middlewares/authMiddleware';
 import authorizationMiddleware from '../middlewares/authorizationMiddleware';
 import ownershipCheck, { ResourceType } from '../middlewares/ownershipMiddleware';
@@ -14,49 +15,46 @@ import {
   createUser
 } from '../controllers/modules/userController';
 
+type AuthRequestHandler = RequestHandler<any, any, any, any, { user: AuthenticatedRequest['user'] }>;
+
 const router = express.Router();
 
 // Public routes (no authentication required)
 router.post('/register', createUser as RequestHandler);
 router.post('/login', loginUser as RequestHandler);
 
-// Get all users - accessible to all authenticated users
+// Protected routes
 router.get('/users', 
   authMiddleware as RequestHandler, 
-  getUsers as RequestHandler
+  getUsers as unknown as RequestHandler
 );
 
-// Get user by ID - accessible to all authenticated users
 router.get('/users/:id', 
   authMiddleware as RequestHandler, 
-  getUserById as RequestHandler
+  getUserById as unknown as RequestHandler
 );
 
-// Update user - users can only update their own data, admins can update any user
 router.put('/users/:id', 
   authMiddleware as RequestHandler, 
   ownershipCheck(ResourceType.USER) as RequestHandler,
-  updateUser as RequestHandler
+  updateUser as unknown as RequestHandler
 );
 
-// Delete user - users can only delete their own data, admins can delete any user
 router.delete('/users/:id', 
   authMiddleware as RequestHandler, 
   ownershipCheck(ResourceType.USER) as RequestHandler,
-  deleteUser as RequestHandler
+  deleteUser as unknown as RequestHandler
 );
 
-// Update user role - admin only
 router.patch('/users/:id/role', 
   authMiddleware as RequestHandler, 
   authorizationMiddleware([UserRole.ADMIN]) as RequestHandler,
-  updateUserRole as RequestHandler
+  updateUserRole as unknown as RequestHandler
 );
 
-// Logout user
 router.post('/logout', 
   authMiddleware as RequestHandler, 
-  logout as RequestHandler
+  logout as unknown as RequestHandler
 );
 
 export default router;

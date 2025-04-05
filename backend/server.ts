@@ -17,6 +17,7 @@ import jobCategoryService from './services/jobCategoryService';
 import documentService from './services/documentService';
 import notificationService from './services/notificationService';
 import savedJobService from './services/savedJobService';
+import sortingRoutes from './routes/sortingRoutes';
 import { errorMiddleware } from './middlewares/errorMiddleware';
 import { sessionMiddleware } from './config/session';
 import csrfMiddleware from './middlewares/csrfMiddleware';
@@ -112,6 +113,7 @@ const initApp = async () => {
   app.use('/devlink', documentService());
   app.use('/devlink', notificationService());
   app.use('/devlink', savedJobService());
+  app.use('/devlink/sort', sortingRoutes);
 
   // Add security headers to responses
   app.use((req, res, next) => {
