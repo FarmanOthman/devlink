@@ -16,7 +16,7 @@ const router = express.Router();
 router.get('/skills', getSkills as RequestHandler);
 router.get('/skills/:id', getSkillById as RequestHandler);
 
-// Protected routes - Admin only 
+// Protected routes - Only Admins can modify skills
 router.post('/skills', 
   authMiddleware as RequestHandler,
   authorizationMiddleware([UserRole.ADMIN]) as RequestHandler,

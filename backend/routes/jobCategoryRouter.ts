@@ -18,22 +18,19 @@ router.get('/job-categories', getJobCategories as RequestHandler);
 router.get('/job-categories/:id', getJobCategoryById as RequestHandler);
 router.get('/job-categories/:id/jobs', getJobsByCategoryId as RequestHandler);
 
-// Protected routes
-// POST /job-categories: Only Admins and Recruiters can create job categories
+// Protected routes - Only Admins can modify job categories
 router.post('/job-categories', 
   authMiddleware as RequestHandler,
-  authorizationMiddleware([UserRole.ADMIN, UserRole.RECRUITER]) as RequestHandler,
+  authorizationMiddleware([UserRole.ADMIN]) as RequestHandler,
   createJobCategory as RequestHandler
 );
 
-// PUT /job-categories/:id: Only Admins can update job categories
 router.put('/job-categories/:id', 
   authMiddleware as RequestHandler,
   authorizationMiddleware([UserRole.ADMIN]) as RequestHandler,
   updateJobCategory as RequestHandler
 );
 
-// DELETE /job-categories/:id: Only Admins can delete job categories
 router.delete('/job-categories/:id', 
   authMiddleware as RequestHandler,
   authorizationMiddleware([UserRole.ADMIN]) as RequestHandler,

@@ -1,21 +1,22 @@
-import { JwtPayload } from './userTypes';
 import { Request } from 'express';
 import { Role } from '@prisma/client';
+
+interface AuthUser {
+  userId: string;
+  email: string;
+  role: Role;
+}
 
 declare global {
   namespace Express {
     interface Request {
-      user?: JwtPayload;
+      user: AuthUser;
     }
   }
 }
 
 export interface AuthenticatedRequest extends Request {
-  user: {
-    userId: string;
-    email: string;
-    role: Role;
-  };
+  user: AuthUser;
 }
 
-export {}; 
+export type { AuthUser }; 

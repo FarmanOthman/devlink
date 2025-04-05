@@ -18,24 +18,22 @@ router.get('/companies', getCompanies as RequestHandler);
 router.get('/companies/:id', getCompanyById as RequestHandler);
 router.get('/companies/name/:name', getCompanyByName as RequestHandler);
 
-// POST /companies: Only Recruiters and Admins can create companies
+// Protected routes - Only Admins and Recruiters can modify companies
 router.post('/companies', 
   authMiddleware as RequestHandler,
-  authorizationMiddleware([UserRole.RECRUITER, UserRole.ADMIN]) as RequestHandler,
+  authorizationMiddleware([UserRole.ADMIN, UserRole.RECRUITER]) as RequestHandler,
   createCompany as RequestHandler
 );
 
-// PUT /companies/:id: Only Recruiters and Admins can update companies
 router.put('/companies/:id', 
   authMiddleware as RequestHandler,
-  authorizationMiddleware([UserRole.RECRUITER, UserRole.ADMIN]) as RequestHandler,
+  authorizationMiddleware([UserRole.ADMIN, UserRole.RECRUITER]) as RequestHandler,
   updateCompany as RequestHandler
 );
 
-// DELETE /companies/:id: Only Admins can delete companies
 router.delete('/companies/:id', 
   authMiddleware as RequestHandler,
-  authorizationMiddleware([UserRole.ADMIN]) as RequestHandler,
+  authorizationMiddleware([UserRole.ADMIN]) as RequestHandler, // Only admins can delete companies
   deleteCompany as RequestHandler
 );
 

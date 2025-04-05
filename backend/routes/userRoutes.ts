@@ -1,4 +1,4 @@
-import express, { RequestHandler } from 'express';
+import express, { RequestHandler, Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../types/express.d';
 import { authMiddleware } from '../middlewares/authMiddleware';
 import authorizationMiddleware from '../middlewares/authorizationMiddleware';
@@ -15,8 +15,6 @@ import {
   createUser
 } from '../controllers/modules/userController';
 
-type AuthRequestHandler = RequestHandler<any, any, any, any, { user: AuthenticatedRequest['user'] }>;
-
 const router = express.Router();
 
 // Public routes (no authentication required)
@@ -25,36 +23,36 @@ router.post('/login', loginUser as RequestHandler);
 
 // Protected routes
 router.get('/users', 
-  authMiddleware as RequestHandler, 
-  getUsers as unknown as RequestHandler
+  authMiddleware as RequestHandler,
+  (getUsers as unknown) as RequestHandler
 );
 
 router.get('/users/:id', 
-  authMiddleware as RequestHandler, 
-  getUserById as unknown as RequestHandler
+  authMiddleware as RequestHandler,
+  (getUserById as unknown) as RequestHandler
 );
 
 router.put('/users/:id', 
-  authMiddleware as RequestHandler, 
+  authMiddleware as RequestHandler,
   ownershipCheck(ResourceType.USER) as RequestHandler,
-  updateUser as unknown as RequestHandler
+  (updateUser as unknown) as RequestHandler
 );
 
 router.delete('/users/:id', 
-  authMiddleware as RequestHandler, 
+  authMiddleware as RequestHandler,
   ownershipCheck(ResourceType.USER) as RequestHandler,
-  deleteUser as unknown as RequestHandler
+  (deleteUser as unknown) as RequestHandler
 );
 
 router.patch('/users/:id/role', 
-  authMiddleware as RequestHandler, 
+  authMiddleware as RequestHandler,
   authorizationMiddleware([UserRole.ADMIN]) as RequestHandler,
-  updateUserRole as unknown as RequestHandler
+  (updateUserRole as unknown) as RequestHandler
 );
 
 router.post('/logout', 
-  authMiddleware as RequestHandler, 
-  logout as unknown as RequestHandler
+  authMiddleware as RequestHandler,
+  (logout as unknown) as RequestHandler
 );
 
 export default router;
