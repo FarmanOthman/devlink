@@ -12,7 +12,9 @@ import {
   updateUserRole,
   logout,
   loginUser,
-  createUser
+  createUser,
+  forgotPassword,
+  resetPassword
 } from '../controllers/modules/userController';
 
 const router = express.Router();
@@ -20,39 +22,17 @@ const router = express.Router();
 // Public routes (no authentication required)
 router.post('/register', createUser as RequestHandler);
 router.post('/login', loginUser as RequestHandler);
+router.post('/forgot-password', forgotPassword as RequestHandler);
+router.post('/reset-password', resetPassword as RequestHandler);
 
-// Protected routes
-router.get('/users', 
-  authMiddleware as RequestHandler,
-  (getUsers as unknown) as RequestHandler
-);
+// Protected routes (authentication required)
+router.use(authMiddleware as RequestHandler);
 
-router.get('/users/:id', 
-  authMiddleware as RequestHandler,
-  (getUserById as unknown) as RequestHandler
-);
-
-router.put('/users/:id', 
-  authMiddleware as RequestHandler,
-  ownershipCheck(ResourceType.USER) as RequestHandler,
-  (updateUser as unknown) as RequestHandler
-);
-
-router.delete('/users/:id', 
-  authMiddleware as RequestHandler,
-  ownershipCheck(ResourceType.USER) as RequestHandler,
-  (deleteUser as unknown) as RequestHandler
-);
-
-router.patch('/users/:id/role', 
-  authMiddleware as RequestHandler,
-  authorizationMiddleware([UserRole.ADMIN]) as RequestHandler,
-  (updateUserRole as unknown) as RequestHandler
-);
-
-router.post('/logout', 
-  authMiddleware as RequestHandler,
-  (logout as unknown) as RequestHandler
-);
+router.get('/users', authorizationMiddleware([UserRole.ADMIN]), getUsers as RequestHandler);
+router.get('/users/:id', getUserById as RequestHandler);
+router.put('/users/:id', ownershipCheck(ResourceType.USER), updateUser as unknown as RequestHandler);
+router.delete('/users/:id', ownershipCheck(ResourceType.USER), deleteUser as RequestHandler);
+router.put('/users/:id/role', authorizationMiddleware([UserRole.ADMIN]), updateUserRole as RequestHandler);
+router.post('/logout', logout as RequestHandler);
 
 export default router;

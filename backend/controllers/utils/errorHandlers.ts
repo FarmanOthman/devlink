@@ -117,4 +117,12 @@ export const handleApiError = (
       message: defaultMessage,
     },
   });
+};
+
+export const logError = (error: any, message: string, context?: Record<string, any>): void => {
+  console.error(`[ERROR] ${message}:`, {
+    error: error instanceof Error ? error.message : error,
+    stack: error instanceof Error ? error.stack : undefined,
+    ...context
+  });
 }; 

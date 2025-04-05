@@ -12,3 +12,14 @@
 
 // Re-export all user controllers from the users directory
 export * from '../users';
+
+export { getUsers } from '../users/getUsers';
+export { getUserById } from '../users/getUserById';
+export { updateUser } from '../users/updateUser';
+export { deleteUser } from '../users/deleteUser';
+export { updateUserRole } from '../users/updateUserRole';
+export { logout } from '../users/logout';
+export { loginUser } from '../users/loginUser';
+export { createUser } from '../users/createUser';
+export { forgotPassword } from '../users/forgotPassword';
+export { resetPassword } from '../users/resetPassword';
