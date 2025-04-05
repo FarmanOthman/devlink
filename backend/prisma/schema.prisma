@@ -83,7 +83,7 @@ model Job {
   applications Application[]
   company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category     JobCategory   @relation(fields: [categoryId], references: [id])
+  category     JobCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   skills       JobSkill[]
   savedBy      SavedJob[]
 
