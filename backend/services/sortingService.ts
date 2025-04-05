@@ -1,19 +1,18 @@
-import { PrismaClient, Job, Application, Prisma } from '@prisma/client';
+import { PrismaClient, Job, Application, Prisma, User, SkillLevel } from '@prisma/client';
 import { calculateSkillMatch } from '../utils/skillMatchUtil';
 
 const prisma = new PrismaClient();
 
 export type SortOption = 'date_posted' | 'salary' | 'skill_match';
-export type SortOrder = 'asc' | 'desc';
 
-interface SortParams {
+export type SortParams = {
   sortBy?: SortOption;
-  order?: SortOrder;
+  order?: 'asc' | 'desc';
   page?: number;
   limit?: number;
-}
+};
 
-interface PaginatedResponse<T> {
+export type PaginatedResponse<T> = {
   data: T[];
   pagination: {
     total: number;
@@ -21,7 +20,32 @@ interface PaginatedResponse<T> {
     limit: number;
     totalPages: number;
   };
-}
+};
+
+// Define types for job and user skills
+export type JobWithSkills = Job & {
+  skills: Array<{
+    id: string;
+    skillId: string;
+    level: SkillLevel;
+    jobId: string;
+    skill: {
+      id: string;
+      name: string;
+    };
+  }>;
+};
+
+export type UserSkillWithDetails = {
+  id: string;
+  skillId: string;
+  level: SkillLevel;
+  userId: string;
+  skill: {
+    id: string;
+    name: string;
+  };
+};
 
 export class SortingService {
   // Job sorting for developers
@@ -66,8 +90,15 @@ export class SortingService {
           // Get all jobs for skill matching
           const jobs = await prisma.job.findMany({
             where: filters,
-            include
-          });
+            include: {
+              ...include,
+              skills: {
+                include: {
+                  skill: true
+                }
+              }
+            }
+          }) as JobWithSkills[];
 
           // Calculate skill match for each job
           const jobsWithScore = await Promise.all(
@@ -105,28 +136,26 @@ export class SortingService {
     }
 
     // If not skill_match sorting, use regular prisma sorting with pagination
-    if (sortBy !== 'skill_match' || !userId) {
-      const [jobs, total] = await Promise.all([
-        prisma.job.findMany({
-          where: filters,
-          orderBy,
-          include,
-          skip,
-          take
-        }),
-        prisma.job.count({ where: filters })
-      ]);
+    const [jobs, total] = await Promise.all([
+      prisma.job.findMany({
+        where: filters,
+        orderBy,
+        include,
+        skip,
+        take
+      }),
+      prisma.job.count({ where: filters })
+    ]);
 
-      return {
-        data: jobs,
-        pagination: {
-          total,
-          page,
-          limit,
-          totalPages: Math.ceil(total / limit)
-        }
-      };
-    }
+    return {
+      data: jobs,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
   }
 
   // Application sorting for recruiters
@@ -154,8 +183,8 @@ export class SortingService {
       case 'date_posted':
         orderBy.createdAt = order;
         break;
-      case 'skill_match':
-        orderBy.skillMatchScore = order;
+      default:
+        orderBy.createdAt = 'desc';
         break;
     }
 
@@ -192,7 +221,7 @@ export class SortingService {
   }
 
   // Get recommended jobs for a developer
-  async getRecommendedJobs(userId: string, page: number = 1, limit: number = 10): Promise<PaginatedResponse<Job>> {
+  async getRecommendedJobs(userId: string, page: number = 1, limit: number = 10): Promise<PaginatedResponse<Job & { matchScore: number }>> {
     // Get user's skills and preferences
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -200,11 +229,6 @@ export class SortingService {
         skills: {
           include: {
             skill: true
-          }
-        },
-        applications: {
-          include: {
-            job: true
           }
         }
       }
@@ -214,7 +238,7 @@ export class SortingService {
       throw new Error('User not found');
     }
 
-    // Get all active jobs
+    // Get all active jobs with their skills
     const jobs = await prisma.job.findMany({
       where: {
         expiresAt: {
@@ -230,7 +254,7 @@ export class SortingService {
         },
         company: true
       }
-    });
+    }) as JobWithSkills[];
 
     // Calculate scores for each job
     const scoredJobs = await Promise.all(
@@ -243,11 +267,11 @@ export class SortingService {
           ? user.location.toLowerCase() === job.location.toLowerCase() ? 1 : 0
           : 0;
 
-        // Calculate salary match (10%)
-        const salaryScore = user.preferredJobType === job.type ? 1 : 0;
+        // Calculate job type match (10%)
+        const jobTypeScore = user.preferredJobType === job.type ? 1 : 0;
 
         // Calculate final weighted score
-        const finalScore = (skillScore * 0.7) + (locationScore * 0.2) + (salaryScore * 0.1);
+        const finalScore = (skillScore * 0.7) + (locationScore * 0.2) + (jobTypeScore * 0.1);
 
         return {
           ...job,
@@ -256,7 +280,7 @@ export class SortingService {
       })
     );
 
-    // Sort by score
+    // Sort by score in descending order
     const sortedJobs = scoredJobs.sort((a, b) => b.matchScore - a.matchScore);
 
     // Calculate pagination
@@ -277,7 +301,7 @@ export class SortingService {
   }
 
   // Get recommended candidates for a job
-  async getRecommendedCandidates(jobId: string, page: number = 1, limit: number = 10): Promise<PaginatedResponse<any>> {
+  async getRecommendedCandidates(jobId: string, page: number = 1, limit: number = 10): Promise<PaginatedResponse<User & { matchScore: number }>> {
     const job = await prisma.job.findUnique({
       where: { id: jobId },
       include: {
@@ -287,16 +311,20 @@ export class SortingService {
           }
         }
       }
-    });
+    }) as JobWithSkills | null;
 
     if (!job) {
       throw new Error('Job not found');
     }
 
-    // Get all developers
+    // Get all developers with their skills, excluding the job creator
     const developers = await prisma.user.findMany({
       where: {
-        role: 'DEVELOPER'
+        role: 'DEVELOPER',
+        deletedAt: null,
+        id: {
+          not: job.userId // Exclude the job creator
+        }
       },
       include: {
         skills: {
@@ -318,7 +346,7 @@ export class SortingService {
       })
     );
 
-    // Sort by score
+    // Sort by score in descending order
     const sortedCandidates = scoredCandidates.sort((a, b) => b.matchScore - a.matchScore);
 
     // Calculate pagination
