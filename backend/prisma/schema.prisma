@@ -7,6 +7,193 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id                   String              @id @default(uuid())
+  name                 String
+  email                String              @unique
+  password             String
+  role                 Role                @default(DEVELOPER)
+  bio                  String?             @db.Text
+  avatar               String?
+  location             String?
+  phone                String?
+  tokenVersion         Int                 @default(0)
+  resetToken          String?             @unique
+  resetTokenExpiry    DateTime?
+  lastActive           DateTime            @default(now())
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  deletedAt            DateTime?
+  companyId            String?
+  githubUrl            String?
+  linkedinUrl          String?
+  portfolioUrl         String?
+  preferredJobType     JobType?
+  profileCompleteness  Int                 @default(0)
+  applications         Application[]       @relation("UserApplications")
+  document             Document?
+  jobs                 Job[]
+  notifications        Notification[]
+  company              Company?            @relation(fields: [companyId], references: [id])
+  skills               UserSkill[]
+  savedJobs            SavedJob[]
+  recruiterApplications Application[]      @relation("RecruiterApplications")
+
+  @@index([createdAt])
+}
+
+model Company {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  website     String?
+  logo        String?
+  description String?   @db.Text
+  industry    String?
+  size        String?
+  founded     Int?
+  location    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  jobs        Job[]
+  users       User[]
+
+  @@index([createdAt])
+}
+
+model Job {
+  id           String        @id @default(cuid())
+  title        String
+  description  String        @db.Text
+  location     String
+  type         JobType       @default(FULL_TIME)
+  salaryMin    Float?
+  salaryMax    Float?
+  currency     String?       @default("USD")
+  experience   String?
+  remote       Boolean       @default(false)
+  viewCount    Int           @default(0)
+  companyId    String
+  userId       String
+  categoryId   String        // Foreign key for job category
+  expiresAt    DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  deletedAt    DateTime?
+  applications Application[]
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category     JobCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  skills       JobSkill[]
+  savedBy      SavedJob[]
+
+  @@index([companyId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([categoryId])
+  @@index([salaryMin, salaryMax])
+  @@index([location])
+}
+
+model Application {
+  id               String            @id @default(cuid())
+  userId           String
+  jobId            String
+  resumeUrl        String
+  coverLetter      String?           @db.Text
+  status           ApplicationStatus @default(PENDING)
+  skillMatchScore  Float?            @default(0)
+  // Interview fields (merged from InterviewRequest)
+  scheduledFor     DateTime?
+  interviewMessage String?           @db.Text
+  interviewStatus  InterviewStatus?
+  recruiterId      String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  deletedAt        DateTime?
+  job              Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user             User              @relation("UserApplications", fields: [userId], references: [id], onDelete: Cascade)
+  recruiter        User?             @relation("RecruiterApplications", fields: [recruiterId], references: [id], onDelete: SetNull)
+
+  @@index([jobId])
+  @@index([userId])
+  @@index([status])
+  @@index([recruiterId])
+  @@index([createdAt])
+  @@index([skillMatchScore])
+}
+
+model SavedJob {
+  id        String   @id @default(cuid())
+  userId    String
+  jobId     String
+  createdAt DateTime @default(now())
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, jobId])
+}
+
+model Skill {
+  id         String      @id @default(cuid())
+  name       String      @unique
+  jobSkills  JobSkill[]
+  userSkills UserSkill[]
+}
+
+model UserSkill {
+  id      String     @id @default(cuid())
+  userId  String
+  skillId String
+  level   SkillLevel @default(BEGINNER)
+  skill   Skill      @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  user    User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId])
+}
+
+model JobSkill {
+  id      String     @id @default(cuid())
+  jobId   String
+  skillId String
+  level   SkillLevel @default(BEGINNER)
+  job     Job        @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  skill   Skill      @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, skillId])
+}
+
+model JobCategory {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  jobs      Job[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Document {
+  id           String       @id @default(cuid())
+  userId       String       @unique
+  fileUrl      String
+  documentType DocumentType @default(RESUME)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String            @id @default(cuid())
+  userId    String
+  message   String
+  type      NotificationType  @default(GENERAL)
+  isRead    Boolean           @default(false)
+  createdAt DateTime          @default(now())
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([isRead])
+  @@index([userId])
+}
+
 enum Role {
   DEVELOPER
   RECRUITER
@@ -15,9 +202,18 @@ enum Role {
 
 enum ApplicationStatus {
   PENDING
+  UNDER_REVIEW
   INTERVIEW_SCHEDULED
   HIRED
   REJECTED
+}
+
+enum InterviewStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  COMPLETED
+  CANCELED
 }
 
 enum SkillLevel {
@@ -33,169 +229,17 @@ enum JobType {
   REMOTE
 }
 
-model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      Role     @default(DEVELOPER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
-
-  // Relations
-  companyId String?
-  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  jobs      Job[]
-  applications Application[]
-  documents Document[]
-  skills    UserSkill[]
-  notifications Notification[]
-  logs      AuditLog[]
-
-  @@index([createdAt])
+enum DocumentType {
+  RESUME
+  COVER_LETTER
+  PORTFOLIO
+  OTHER
 }
 
-model Company {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  website   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
-
-  // Relations
-  users  User[]
-  jobs   Job[]
-
-  @@index([createdAt])
-}
-
-model Job {
-  id          String   @id @default(cuid())
-  title       String
-  description String
-  location    String
-  type        JobType  @default(FULL_TIME)
-  companyId   String
-  userId      String   // Added this field to establish a relation with User
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  deletedAt   DateTime?
-
-  // Relations
-  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade) // Added this relation
-  applications Application[]
-  categories   JobCategory[]
-  skills       JobSkill[]
-
-  @@index([companyId])
-  @@index([type])
-  @@index([createdAt])
-}
-
-model Application {
-  id        String   @id @default(cuid())
-  userId    String
-  jobId     String
-  resumeUrl String
-  status    ApplicationStatus @default(PENDING)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  job  Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
-
-  @@index([jobId])
-  @@index([userId])
-  @@index([status])
-  @@index([createdAt])
-}
-
-model Skill {
-  id    String  @id @default(cuid())
-  name  String  @unique
-
-  // Relations
-  userSkills UserSkill[]
-  jobSkills  JobSkill[]
-}
-
-model UserSkill {
-  id       String     @id @default(cuid())
-  userId   String
-  skillId  String
-  level    SkillLevel @default(BEGINNER)
-
-  // Relations
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, skillId])
-}
-
-model JobSkill {
-  id      String     @id @default(cuid())
-  jobId   String
-  skillId String
-  level   SkillLevel @default(BEGINNER)
-
-  // Relations
-  job   Job   @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
-
-  @@unique([jobId, skillId])
-}
-
-model JobCategory {
-  id     String @id @default(cuid())
-  jobId  String
-  name   String
-
-  // Relations
-  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
-
-  @@unique([jobId, name])
-}
-
-model Document {
-  id        String   @id @default(cuid())
-  userId    String
-  fileName  String
-  fileType  String
-  filePath  String
-  createdAt DateTime @default(now())
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model Notification {
-  id        String   @id @default(cuid())
-  userId    String
-  message   String
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([isRead])
-}
-
-model AuditLog {
-  id        String   @id @default(cuid())
-  userId    String
-  action    String
-  oldValue  String?
-  newValue  String?
-  createdAt DateTime @default(now())
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([createdAt])
+enum NotificationType {
+  GENERAL
+  APPLICATION_UPDATE
+  INTERVIEW_REQUEST
+  JOB_MATCH
+  MESSAGE
 }
