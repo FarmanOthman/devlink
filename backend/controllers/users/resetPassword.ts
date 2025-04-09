@@ -34,7 +34,7 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
       res.status(400).json({
         success: false,
         error: {
-          code: ErrorCodes.VALIDATION_ERROR,
+          code: ErrorCodes.VALIDATION,
           message: 'Invalid or expired reset token',
         },
       });

@@ -7,7 +7,7 @@ import { handleApiError, ErrorCodes, logError } from './utils';
 export const deleteUser = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const currentUserId = req.user?.userId;
+    const currentUserId = req.user?.id;
     const userRole = req.user?.role;
     const isSelfDelete = currentUserId === id;
 

@@ -31,7 +31,7 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
       portfolioUrl 
     } = req.body;
     
-    const currentUserId = req.user?.userId;
+    const currentUserId = req.user?.id;
     const isSelfUpdate = currentUserId === id;
 
     // Check if role is being updated and if the request is coming from a non-admin user

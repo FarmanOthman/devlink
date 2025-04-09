@@ -7,7 +7,7 @@ import { handleApiError, ErrorCodes } from './utils';
 export const getUserById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const isOwnProfile = req.user?.userId === id;
+    const isOwnProfile = req.user?.id === id;
     const isAdmin = req.user?.role === UserRole.ADMIN;
 
     const user = await prisma.user.findUnique({
