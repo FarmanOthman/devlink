@@ -3,15 +3,6 @@ import prisma from '../../config/db';
 import { JwtPayload } from '../../types/userTypes';
 import { createNotification } from '../../utils/notificationUtils';
 
-// Extend Request to include user property from auth middleware
-declare global {
-  namespace Express {
-    interface Request {
-      user?: JwtPayload;
-    }
-  }
-}
-
 /**
  * Create a notification for application under review
  * @param applicantId - The ID of the applicant
@@ -54,9 +45,9 @@ export const markApplicationUnderReview = async (req: Request, res: Response): P
       return;
     }
     
-    // Ensure the job belongs to this recruiter
-    if (req.user?.role === 'RECRUITER' && application.job.userId !== req.user.userId) {
-      console.log(`Access denied: Job ${application.jobId} belongs to user ${application.job.userId}, not recruiter ${req.user.userId}`);
+    // Check permissions - if recruiter, only allow for their own jobs
+    if (req.user?.role === 'RECRUITER' && application.job.userId !== req.user.id) {
+      console.log(`Access denied: Job ${application.jobId} belongs to user ${application.job.userId}, not recruiter ${req.user.id}`);
       res.status(403).json({ 
         success: false, 
         message: 'You do not have permission to update this application' 

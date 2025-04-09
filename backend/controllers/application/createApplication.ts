@@ -3,15 +3,6 @@ import prisma from '../../config/db';
 import { JwtPayload } from '../../types/userTypes';
 import { notifyNewApplication } from '../../utils/notificationUtils';
 
-// Extend Request to include user property from auth middleware
-declare global {
-  namespace Express {
-    interface Request {
-      user?: JwtPayload;
-    }
-  }
-}
-
 // Create a new application
 export const createApplication = async (req: Request, res: Response): Promise<void> => {
   try {

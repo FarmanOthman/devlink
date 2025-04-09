@@ -2,15 +2,6 @@ import { Request, Response } from 'express';
 import prisma from '../../config/db';
 import { JwtPayload } from '../../types/userTypes';
 
-// Extend Request to include user property from auth middleware
-declare global {
-  namespace Express {
-    interface Request {
-      user?: JwtPayload;
-    }
-  }
-}
-
 // Get all interviews (for recruiters/admins)
 export const getInterviews = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -18,7 +9,7 @@ export const getInterviews = async (req: Request, res: Response): Promise<void> 
     
     // If the user is a recruiter, only show interviews for their jobs
     if (req.user?.role === 'RECRUITER') {
-      console.log(`Fetching interviews for recruiter: ${req.user.userId}`);
+      console.log(`Fetching interviews for recruiter: ${req.user.id}`);
       
       // Using raw SQL query to handle non-standard field until Prisma schema is updated
       interviews = await prisma.$queryRaw`
@@ -26,7 +17,7 @@ export const getInterviews = async (req: Request, res: Response): Promise<void> 
         JOIN "Job" j ON a."jobId" = j.id
         WHERE a."scheduledFor" IS NOT NULL
         AND a."deletedAt" IS NULL
-        AND j."userId" = ${req.user.userId}
+        AND j."userId" = ${req.user.id}
       `;
     } else {
       // For admins, fetch all interviews

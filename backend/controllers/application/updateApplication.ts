@@ -3,15 +3,6 @@ import prisma from '../../config/db';
 import { JwtPayload } from '../../types/userTypes';
 import { notifyApplicationAccepted, notifyApplicationRejected } from '../../utils/notificationUtils';
 
-// Extend Request to include user property from auth middleware
-declare global {
-  namespace Express {
-    interface Request {
-      user?: JwtPayload;
-    }
-  }
-}
-
 // Update application
 export const updateApplication = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -39,11 +30,11 @@ export const updateApplication = async (req: Request, res: Response): Promise<vo
     // For recruiters, only allow updating the status and ensure they own the job
     if (req.user?.role === 'RECRUITER') {
       // Log for debugging purposes
-      console.log(`Recruiter ${req.user.userId} attempting to update application ${id} for job ${application.jobId}`);
+      console.log(`Recruiter ${req.user.id} attempting to update application ${id} for job ${application.jobId}`);
       
       // Ensure the job belongs to this recruiter (additional security check)
-      if (application.job.userId !== req.user.userId) {
-        console.log(`Access denied: Job ${application.jobId} belongs to user ${application.job.userId}, not recruiter ${req.user.userId}`);
+      if (application.job.userId !== req.user.id) {
+        console.log(`Access denied: Job ${application.jobId} belongs to user ${application.job.userId}, not recruiter ${req.user.id}`);
         res.status(403).json({ message: 'You do not have permission to update this application' });
         return;
       }

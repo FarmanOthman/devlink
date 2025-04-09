@@ -2,26 +2,17 @@ import { Request, Response } from 'express';
 import prisma from '../../config/db';
 import { JwtPayload } from '../../types/userTypes';
 
-// Extend Request to include user property from auth middleware
-declare global {
-  namespace Express {
-    interface Request {
-      user?: JwtPayload;
-    }
-  }
-}
-
 // Get all applications
 export const getApplications = async (req: Request, res: Response): Promise<void> => {
   try {
     // If the user is a recruiter, only show applications for their jobs
     if (req.user?.role === 'RECRUITER') {
-      console.log(`Fetching applications for recruiter: ${req.user.userId}`);
+      console.log(`Fetching applications for recruiter: ${req.user.id}`);
       
       const applications = await prisma.application.findMany({
         where: {
           job: {
-            userId: req.user.userId
+            userId: req.user.id
           },
           deletedAt: null
         },
