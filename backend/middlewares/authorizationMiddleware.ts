@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express';
-import { JwtPayload, UserRole } from '../types';
+import { UserRole } from '../types';
 
 // Constants for error messages and status codes
 const ERROR_MESSAGES = {
@@ -78,5 +78,4 @@ const authorizationMiddleware = (allowedRoles: UserRole[], options?: AuthOptions
         next();
     };
 };
-
 export default authorizationMiddleware;
