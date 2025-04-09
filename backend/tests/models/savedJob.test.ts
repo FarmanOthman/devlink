@@ -38,69 +38,60 @@ describe('SavedJob Model', () => {
     try {
       console.log('Starting test setup...');
 
-      console.log('Creating user...');
-      const user = await prisma.user.create({ data: testUser });
-      testUserId = user.id;
-      console.log('User created:', testUserId);
+      // Create all records in a single transaction
+      const result = await prisma.$transaction(async (tx) => {
+        console.log('Creating company...');
+        const company = await tx.company.create({ data: testCompany });
+        testCompanyId = company.id;
+        console.log('Company created:', testCompanyId);
 
-      console.log('Creating company...');
-      const company = await prisma.company.create({ data: testCompany });
-      testCompanyId = company.id;
-      console.log('Company created:', testCompanyId);
+        console.log('Creating recruiter...');
+        const recruiter = await tx.user.create({ 
+          data: {
+            ...testRecruiter,
+            companyId: company.id,
+          }
+        });
+        testRecruiterId = recruiter.id;
+        console.log('Recruiter created:', testRecruiterId);
 
-      console.log('Creating recruiter...');
-      const recruiter = await prisma.user.create({ 
-        data: {
-          ...testRecruiter,
-          companyId: company.id,
-        }
-      });
-      testRecruiterId = recruiter.id;
-      console.log('Recruiter created:', testRecruiterId);
+        console.log('Creating user...');
+        const user = await tx.user.create({ data: testUser });
+        testUserId = user.id;
+        console.log('User created:', testUserId);
 
-      console.log('Creating job category...');
-      const category = await prisma.jobCategory.create({ data: testCategory });
-      testCategoryId = category.id;
-      console.log('Job category created:', testCategoryId);
+        console.log('Creating job category...');
+        const category = await tx.jobCategory.create({ data: testCategory });
+        testCategoryId = category.id;
+        console.log('Job category created:', testCategoryId);
 
-      console.log('Creating job...');
-      testJob = await prisma.job.create({
-        data: {
-          title: 'Test Job',
-          description: 'A test job position',
-          location: 'Test Location',
-          type: JobType.FULL_TIME,
-          salaryMin: 50000.0,
-          salaryMax: 100000.0,
-          currency: 'USD',
-          companyId: testCompanyId,
-          userId: testRecruiterId,
-          categoryId: testCategoryId,
-          remote: false,
-        },
-      });
-      console.log('Job created:', testJob.id);
+        console.log('Creating job...');
+        const job = await tx.job.create({
+          data: {
+            title: 'Test Job',
+            description: 'A test job position',
+            location: 'Test Location',
+            type: JobType.FULL_TIME,
+            salaryMin: 50000.0,
+            salaryMax: 100000.0,
+            currency: 'USD',
+            companyId: company.id,
+            userId: recruiter.id,
+            categoryId: category.id,
+            remote: false,
+          },
+          include: {
+            company: true,
+            user: true,
+            category: true,
+          }
+        });
+        testJob = job;
+        console.log('Job created:', job.id);
 
-      // Verify job was created
-      const verifyJob = await prisma.job.findUnique({ 
-        where: { id: testJob.id },
-        include: {
-          company: true,
-          user: true,
-          category: true,
-        }
-      });
-      
-      if (!verifyJob) {
-        throw new Error('Job was not created successfully');
-      }
-      
-      console.log('Job verified with details:', {
-        id: verifyJob.id,
-        title: verifyJob.title,
-        companyId: verifyJob.companyId,
-        userId: verifyJob.userId,
-        categoryId: verifyJob.categoryId
+        return { company, recruiter, user, category, job };
+      }, {
+        isolationLevel: 'Serializable'
       });
 
       console.log('Test setup completed successfully.');
