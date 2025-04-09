@@ -2,6 +2,15 @@ import { Request, Response, NextFunction } from 'express';
 import prisma from '../config/db';
 import { UserRole } from '../types';
 
+// Centralized error messages for consistency
+const ERROR_MESSAGES = {
+  RESOURCE_ID_REQUIRED: 'Resource ID is required',
+  AUTHENTICATION_REQUIRED: 'Authentication required',
+  PERMISSION_DENIED: 'You do not have permission to access this resource',
+  RESOURCE_NOT_FOUND: 'Resource not found',
+  SERVER_ERROR: 'An error occurred while checking permissions'
+};
+
 // Define resource types to avoid string literals
 export enum ResourceType {
   USER = 'user',
@@ -13,6 +22,12 @@ export enum ResourceType {
   SAVED_JOB = 'savedJob',
 }
 
+// Define ownership check result interface
+interface OwnershipResult {
+  found: boolean;
+  isOwner: boolean;
+}
+
 /**
  * Middleware to check if the user owns the resource they are trying to access
  * @param resourceType The type of resource being accessed
@@ -22,12 +37,12 @@ export enum ResourceType {
 const ownershipCheck = (resourceType: string | ResourceType, checkBothUserAndRecruiter = false) => {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const userId = req.user?.userId;
+      const userId = req.user?.id;
       const resourceId = req.params.id;
       
       // Validate input parameters
       if (!resourceId) {
-        res.status(400).json({ success: false, message: 'Resource ID is required' });
+        res.status(400).json({ success: false, message: ERROR_MESSAGES.RESOURCE_ID_REQUIRED });
         return;
       }
       
@@ -39,7 +54,7 @@ const ownershipCheck = (resourceType: string | ResourceType, checkBothUserAndRec
       
       // If no user ID found in token, deny access
       if (!userId) {
-        res.status(401).json({ success: false, message: 'Authentication required' });
+        res.status(401).json({ success: false, message: ERROR_MESSAGES.AUTHENTICATION_REQUIRED });
         return;
       }
 
@@ -53,21 +68,29 @@ const ownershipCheck = (resourceType: string | ResourceType, checkBothUserAndRec
       }
       
       // Check ownership for the specific resource type
-      const isOwner = await checkResourceOwnership(resourceType, resourceId, userId, checkBothUserAndRecruiter);
+      const result = await checkResourceOwnership(resourceType, resourceId, userId, checkBothUserAndRecruiter);
       
-      if (isOwner) {
+      if (!result.found) {
+        res.status(404).json({
+          success: false,
+          message: ERROR_MESSAGES.RESOURCE_NOT_FOUND
+        });
+        return;
+      }
+      
+      if (result.isOwner) {
         next();
       } else {
         res.status(403).json({ 
           success: false, 
-          message: 'You do not have permission to access this resource' 
+          message: ERROR_MESSAGES.PERMISSION_DENIED 
         });
       }
     } catch (error) {
       console.error(`Error in ownership middleware for ${resourceType}:`, error);
       res.status(500).json({ 
         success: false, 
-        message: 'An error occurred while checking permissions' 
+        message: ERROR_MESSAGES.SERVER_ERROR 
       });
     }
   };
@@ -89,7 +112,11 @@ async function checkRecruiterAccess(
       include: { job: true }
     });
     
-    if (application?.job?.userId === userId) {
+    if (!application) {
+      return false;
+    }
+    
+    if (application.job?.userId === userId) {
       return true;
     }
     
@@ -115,6 +142,25 @@ async function checkRecruiterAccess(
 }
 
 /**
+ * Helper function for standard ownership checks
+ */
+async function checkStandardOwnership(
+  model: any,
+  resourceId: string,
+  userId: string
+): Promise<OwnershipResult> {
+  const resource = await model.findUnique({
+    where: { id: resourceId }
+  });
+  
+  if (!resource) {
+    return { found: false, isOwner: false };
+  }
+  
+  return { found: true, isOwner: resource.userId === userId };
+}
+
+/**
  * Check if a user owns a specific resource
  */
 async function checkResourceOwnership(
@@ -122,28 +168,29 @@ async function checkResourceOwnership(
   resourceId: string, 
   userId: string,
   checkBothUserAndRecruiter = false
-): Promise<boolean> {
+): Promise<OwnershipResult> {
   switch (resourceType) {
     case ResourceType.USER:
       // Users can only access their own profile
-      return userId === resourceId;
+      return { found: true, isOwner: userId === resourceId };
     
     case ResourceType.JOB:
-      const job = await prisma.job.findUnique({
-        where: { id: resourceId }
-      });
-      return job?.userId === userId;
+      return checkStandardOwnership(prisma.job, resourceId, userId);
     
     case ResourceType.APPLICATION:
       const application = await prisma.application.findUnique({
         where: { id: resourceId }
       });
       
+      if (!application) {
+        return { found: false, isOwner: false };
+      }
+      
       // If checkBothUserAndRecruiter is true, check if the user is either the applicant or the recruiter
       if (checkBothUserAndRecruiter) {
         // First check applicant
-        if (application?.userId === userId) {
-          return true;
+        if (application.userId === userId) {
+          return { found: true, isOwner: true };
         }
         
         // Then check recruiter using raw query
@@ -151,44 +198,33 @@ async function checkResourceOwnership(
           SELECT * FROM "Application" WHERE id = ${resourceId} AND "recruiterId" = ${userId}
         `;
         
-        return Array.isArray(appWithRecruiter) && appWithRecruiter.length > 0;
+        const isRecruiter = Array.isArray(appWithRecruiter) && appWithRecruiter.length > 0;
+        return { found: true, isOwner: isRecruiter };
       }
       
-      return application?.userId === userId;
+      return { found: true, isOwner: application.userId === userId };
     
     case ResourceType.USER_SKILL:
-      const userSkill = await prisma.userSkill.findUnique({
-        where: { id: resourceId }
-      });
-      return userSkill?.userId === userId;
+      return checkStandardOwnership(prisma.userSkill, resourceId, userId);
     
     case ResourceType.DOCUMENT:
-      const document = await prisma.document.findUnique({
-        where: { id: resourceId }
-      });
-      return document?.userId === userId;
+      return checkStandardOwnership(prisma.document, resourceId, userId);
     
     case ResourceType.NOTIFICATION:
-      const notification = await prisma.notification.findUnique({
-        where: { id: resourceId }
-      });
-      return notification?.userId === userId;
+      return checkStandardOwnership(prisma.notification, resourceId, userId);
     
     case ResourceType.SAVED_JOB:
       try {
-        const savedJob = await prisma.savedJob.findUnique({
-          where: { id: resourceId }
-        });
-        return savedJob?.userId === userId;
+        return checkStandardOwnership(prisma.savedJob, resourceId, userId);
       } catch (error) {
         console.error('Error checking savedJob ownership:', error);
-        return false;
+        return { found: false, isOwner: false };
       }
     
     default:
       // For unknown resource types, deny access
       console.warn(`Unknown resource type: ${resourceType}`);
-      return false;
+      return { found: true, isOwner: false };
   }
 }
 
