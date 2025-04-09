@@ -25,7 +25,9 @@ beforeEach(async () => {
     prisma.jobCategory.deleteMany(),
     prisma.user.deleteMany(),
     prisma.company.deleteMany(),
-  ]);
+  ], {
+    isolationLevel: 'Serializable' // This ensures consistency
+  });
 });
 
 afterAll(async () => {
