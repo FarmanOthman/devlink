@@ -6,6 +6,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:performance": "jest --testMatch='**/tests/performance/**/*.test.ts'",
     "start": "nodemon",
     "build": "tsc",
     "dev": "ts-node server.ts",

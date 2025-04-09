@@ -18,7 +18,6 @@ import documentService from './services/documentService';
 import notificationService from './services/notificationService';
 import savedJobService from './services/savedJobService';
 import sortingRoutes from './routes/sortingRoutes';
-import { errorMiddleware } from './middlewares/errorMiddleware';
 import { sessionMiddleware } from './config/session';
 import csrfMiddleware from './middlewares/csrfMiddleware';
 import { authRateLimiter } from './middlewares/authMiddleware';
@@ -122,9 +121,6 @@ const initApp = async () => {
     res.setHeader('X-XSS-Protection', '1; mode=block');
     next();
   });
-
-  // Error handling middleware
-  app.use(errorMiddleware);
 
   // 404 handler
   app.use((req, res) => {
