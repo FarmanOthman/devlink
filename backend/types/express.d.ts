@@ -2,7 +2,7 @@ import { Request } from 'express';
 import { Role } from '@prisma/client';
 
 interface AuthUser {
-  userId: string;
+  id: string;
   email: string;
   role: Role;
 }
