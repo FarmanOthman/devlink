@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { SortingService, SortOption, SortOrder } from '../../services/sortingService';
+import { SortingService, SortOption, SortParams } from '../../services/sortingService';
 
 const sortingService = new SortingService();
 
@@ -15,7 +15,7 @@ export const getSortedApplications = async (req: Request, res: Response): Promis
 
     const applications = await sortingService.sortApplications({
       sortBy: sort_by as SortOption,
-      order: order as SortOrder,
+      order: order as 'asc' | 'desc',
       jobId,
       page: parseInt(page as string),
       limit: parseInt(limit as string)

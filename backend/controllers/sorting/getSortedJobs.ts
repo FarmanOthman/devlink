@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../../types/express';
-import { SortingService, SortOption, SortOrder } from '../../services/sortingService';
+import { SortingService, SortOption, SortParams } from '../../services/sortingService';
 
 const sortingService = new SortingService();
 
@@ -14,12 +14,12 @@ export const getSortedJobs = async (req: AuthenticatedRequest, res: Response): P
       ...filters 
     } = req.query;
 
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const jobs = await sortingService.sortJobs(
       {
         sortBy: sort_by as SortOption,
-        order: order as SortOrder,
+        order: order as 'asc' | 'desc',
         userId,
         page: parseInt(page as string),
         limit: parseInt(limit as string)
