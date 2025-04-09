@@ -5,7 +5,7 @@ import prisma from '../../config/db';
 export const saveJob = async (req: Request, res: Response): Promise<void> => {
   try {
     const { jobId } = req.body;
-    const userId = req.user?.userId;
+    const userId = req.user?.id;
 
     // Validate required fields
     if (!jobId) {

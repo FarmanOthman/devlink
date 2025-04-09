@@ -5,7 +5,7 @@ import prisma from '../../config/db';
 export const isJobSaved = async (req: Request, res: Response): Promise<void> => {
   try {
     const { jobId } = req.params;
-    const userId = req.user?.userId;
+    const userId = req.user?.id;
 
     if (!userId) {
       res.status(401).json({

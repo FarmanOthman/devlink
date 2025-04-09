@@ -4,7 +4,7 @@ import prisma from '../../config/db';
 // Get all saved jobs for a user
 export const getSavedJobs = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.user?.id;
     const isAdmin = req.user?.role === 'ADMIN';
     
     if (!userId) {
