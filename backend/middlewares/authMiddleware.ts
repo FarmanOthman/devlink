@@ -1,16 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken } from '../config/auth';
 import { tokenService } from '../services/tokenService';
-import { JwtPayload } from '../types/userTypes';
+import { Role } from '@prisma/client';
 import rateLimit from 'express-rate-limit';
-
-declare global {
-  namespace Express {
-    interface Request {
-      user?: JwtPayload;
-    }
-  }
-}
+import crypto from 'crypto';
+import { AuthUser } from '../types/express';
 
 // Rate limiting for authentication attempts
 export const authRateLimiter = rateLimit({
@@ -19,19 +13,37 @@ export const authRateLimiter = rateLimit({
   message: { message: 'Too many authentication attempts, please try again later' }
 });
 
+// CSRF exempt routes
+const CSRF_EXEMPT_ROUTES = [
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/logout',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
+];
+
 export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Skip CSRF check for development with specific header
-    if (process.env.NODE_ENV === 'development' && req.headers['x-skip-csrf-check']) {
-      // Continue with authentication
-    } else {
+    // Skip CSRF check for exempt routes
+    const isExemptRoute = CSRF_EXEMPT_ROUTES.some(route => req.path.startsWith(route));
+    
+    // Skip CSRF check for development with specific header or exempt routes
+    if (!(process.env.NODE_ENV === 'development' && req.headers['x-skip-csrf-check']) && !isExemptRoute) {
       // Check CSRF token
-      const csrfToken = req.headers['x-csrf-token'];
-      if (!csrfToken || typeof csrfToken !== 'string') {
-        return res.status(403).json({ message: 'CSRF token missing' });
+      const csrfToken = req.headers['x-csrf-token'] || req.headers['x-xsrf-token'];
+      const cookieToken = req.cookies['XSRF-TOKEN'];
+
+      if (!csrfToken || !cookieToken) {
+        return res.status(403).json({ 
+          message: 'CSRF token missing',
+          tip: process.env.NODE_ENV === 'development' ? 'Add x-csrf-token header or use x-skip-csrf-check header for testing' : undefined
+        });
       }
-      
-      // Verify CSRF token here (implement your CSRF verification logic)
+
+      // Verify CSRF token using constant-time comparison
+      if (!crypto.timingSafeEqual(Buffer.from(csrfToken as string), Buffer.from(cookieToken))) {
+        return res.status(403).json({ message: 'Invalid CSRF token' });
+      }
     }
 
     // Get the access token from the Authorization header
@@ -48,14 +60,17 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     try {
       // Verify the access token
       const decoded = verifyAccessToken(accessToken);
-      req.user = decoded;
+      
+      // Validate required fields in token payload
+      if (!decoded.userId || !decoded.email || !decoded.role) {
+        throw new Error('Invalid token payload');
+      }
 
       // Check for token expiration
       const currentTime = Math.floor(Date.now() / 1000);
       if (decoded.exp && decoded.exp < currentTime) {
         return res.status(401).json({ 
-          message: 'Token has expired',
-          tip: 'Please refresh your token or login again'
+          message: 'Token has expired'
         });
       }
 
@@ -63,18 +78,29 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
       const hasExceededTimeout = await tokenService.hasExceededInactivityTimeout(decoded.userId);
       if (hasExceededTimeout) {
         return res.status(401).json({ 
-          message: 'Session expired due to inactivity',
-          tip: 'Please login again'
+          message: 'Session expired due to inactivity'
         });
       }
 
       // Update user activity
       await tokenService.checkActivity(decoded.userId);
 
+      // Set user information in request
+      const user: AuthUser = {
+        id: decoded.userId,
+        email: decoded.email,
+        role: decoded.role
+      };
+      
+      req.user = user;
+
       // Add security headers
       res.setHeader('X-Content-Type-Options', 'nosniff');
       res.setHeader('X-Frame-Options', 'DENY');
       res.setHeader('X-XSS-Protection', '1; mode=block');
+      res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
 
       next();
     } catch (error) {
